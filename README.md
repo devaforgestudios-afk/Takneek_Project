@@ -1,2 +1,0 @@
-# Takneek_Project
-
