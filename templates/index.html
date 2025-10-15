@@ -1,0 +1,166 @@
+{% extends "layout.html" %}
+{% block title %}Home | Kalakar Sahayak{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="static/css/style.css">
+
+<section class="hero">
+    <div class="hero-bg"></div>
+    
+    <div class="hero-overlay"></div>
+    <div class="hero-bottom-fade"></div>
+    <div class="hero-content">
+        <div class="badge">
+            <span class="material-icons">auto_awesome</span>
+            <span>Empowering 7 Million+ Artisans Across India</span>
+        </div>
+        <h1 class="hero-title">
+            Where Tradition<br>Meets <span class="highlight">Technology</span>
+        </h1>
+        <p class="hero-description">
+            Empowering traditional Indian artisans with AI-powered tools to design, price, promote, and sell their
+            handcrafted masterpieces while preserving our rich cultural heritage.
+        </p>
+        <div class="cta-buttons">
+            <a href="#marketplace" class="btn btn-primary">
+                <span class="material-icons">shopping_bag</span>
+                <span>Explore Marketplace</span>
+                <span class="material-icons">arrow_forward</span>
+            </a>
+            <a href="#tools" class="btn btn-secondary">
+                <span class="material-icons">auto_awesome</span>
+                <span>Try AI Tools</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+
+<section class="mission-section">
+    <div class="mission-header">
+        <h2 class="mission-title">Our <span class="highlight">Mission</span></h2>
+        <p class="mission-description">
+            Kalakar Sahayak bridges the gap between ancient craftsmanship and modern technology. We provide artisans
+            with powerful AI tools to showcase their work, reach global markets, and preserve traditional art forms for
+            future generations.
+        </p>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <span class="stat-number" data-target="7">0</span>
+            <p class="stat-label">Artisans Reached</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number" data-target="29">0</span>
+            <p class="stat-label">States Covered</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number" data-target="50">0</span>
+            <p class="stat-label">Products Listed</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number" data-target="100">0</span>
+            <p class="stat-label">Art Forms</p>
+        </div>
+    </div>
+</section>
+
+  <section class="ai-innovation-section">
+        <div class="section-content">
+            <div class="section-header">
+                <h2 class="section-title">Powered by <span class="highlight">AI Innovation</span></h2>
+                <p class="section-subtitle">Cutting-edge tools designed specifically for artisan communities</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon-wrapper">
+                        <span class="material-icons">auto_awesome</span>
+                    </div>
+                    <h3 class="feature-title">AI Design Assistant</h3>
+                    <p class="feature-description">
+                        Generate custom patterns and designs that blend traditional motifs with modern aesthetics.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon-wrapper">
+                        <span class="material-icons">shopping_bag</span>
+                    </div>
+                    <h3 class="feature-title">Smart Marketplace</h3>
+                    <p class="feature-description">
+                        Connect directly with customers worldwide while maintaining fair prices for your craftsmanship.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon-wrapper">
+                        <span class="material-icons">auto_stories</span>
+                    </div>
+                    <h3 class="feature-title">Story Generator</h3>
+                    <p class="feature-description">
+                        Share the rich heritage and crafting journey behind each product with AI-generated stories.
+                    </p>
+                </div>
+            </div>
+
+            <a href="#features" class="view-all-btn">
+                <span>View All Features</span>
+                <span class="material-icons">arrow_forward</span>
+            </a>
+        </div>
+    </section>
+
+    
+<script>
+    function animateCounter(element, target, suffix = '+', duration = 2000) {
+        const start = 0;
+        const increment = target / (duration / 16);
+        let current = start;
+
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = target + (target >= 1000 ? 'M' : '') + suffix;
+                clearInterval(timer);
+            } else {
+                const displayValue = Math.floor(current);
+                element.textContent = displayValue + (target >= 1000 ? 'M' : '') + suffix;
+            }
+        }, 16);
+    }
+
+    const observerOptions = {
+        threshold: 0.5,
+        rootMargin: '0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const counters = document.querySelectorAll('.stat-number');
+                counters.forEach(counter => {
+                    const target = parseInt(counter.getAttribute('data-target'));
+                    const suffix = counter.closest('.stat-card').querySelector('.stat-label').textContent.includes('States') ? '' : 'K+';
+
+                    if (target === 7) {
+                        animateCounter(counter, target, 'M+');
+                    } else if (target === 29) {
+                        animateCounter(counter, target, '');
+                    } else if (target === 50) {
+                        animateCounter(counter, target, 'K+');
+                    } else if (target === 100) {
+                        animateCounter(counter, target, '+');
+                    }
+                });
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    observer.observe(document.querySelector('.stats-container'));
+</script>
+
+{% endblock %}

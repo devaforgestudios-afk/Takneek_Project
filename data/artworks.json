@@ -1,0 +1,18 @@
+[
+    {
+        "id": "20251015161948751035",
+        "user_email": "dhai.agarwal@gmail.com",
+        "title": "Madhuban Artowrk",
+        "category": "pottery",
+        "material": "clay, mud",
+        "description": "this was made by my mother",
+        "price": null,
+        "files": [
+            "uploads/artworks/20251015_161948_vase.jpg"
+        ],
+        "created_at": "2025-10-15T16:19:48.751075",
+        "status": "published",
+        "views": 1,
+        "likes": 0
+    }
+]

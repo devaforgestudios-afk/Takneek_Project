@@ -1,0 +1,683 @@
+{% extends "layout.html" %}
+{% block title %}Product Details | Kalakar Sahayak{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+<style>
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    position: relative;
+    background:
+        linear-gradient(135deg, rgba(237, 231, 220, 0.95) 0%, rgba(245, 238, 220, 0.95) 100%),
+        repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(139, 101, 71, 0.02) 35px, rgba(139, 101, 71, 0.02) 70px),
+        repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(210, 105, 30, 0.02) 35px, rgba(210, 105, 30, 0.02) 70px);
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at center, transparent 8px, rgba(139, 101, 71, 0.03) 8px, rgba(139, 101, 71, 0.03) 9px, transparent 9px),
+        repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(210, 105, 30, 0.05) 15deg, transparent 30deg, rgba(212, 175, 55, 0.05) 45deg, transparent 60deg),
+        radial-gradient(ellipse at 20% 30%, rgba(210, 105, 30, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(212, 175, 55, 0.08) 0%, transparent 50%);
+    background-size: 80px 80px, 200px 200px, 600px 600px, 600px 600px;
+    background-position: 0 0, center, 0 0, 0 0;
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: -1;
+}
+
+body::after {
+    content: '✦';
+    position: fixed;
+    top: 0;
+    left: 0;
+    font-size: 20px;
+    color: rgba(139, 101, 71, 0.05);
+    width: 100%;
+    height: 100%;
+    animation: twinkle 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.05;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.15;
+        transform: scale(1.2);
+    }
+}
+
+.product-detail-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #8b6547;
+    text-decoration: none;
+    margin-bottom: 2rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    padding: 8px 16px;
+    background: rgba(139, 101, 71, 0.06);
+    border-radius: 8px;
+    border: 1px solid rgba(139, 101, 71, 0.15);
+}
+
+.back-button:hover {
+    background: rgba(139, 101, 71, 0.12);
+    color: #6b4423;
+    transform: translateX(-4px);
+    border-color: rgba(139, 101, 71, 0.25);
+}
+
+.product-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    background: linear-gradient(135deg, rgba(255, 250, 240, 0.7) 0%, rgba(250, 245, 235, 0.7) 100%);
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 2px solid rgba(139, 101, 71, 0.12);
+    box-shadow: 
+        0 8px 32px rgba(139, 101, 71, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+/* Traditional corner decorations */
+.product-layout::before,
+.product-layout::after {
+    content: '❋';
+    position: absolute;
+    font-size: 24px;
+    color: rgba(139, 101, 71, 0.2);
+    z-index: 1;
+}
+
+.product-layout::before {
+    top: 12px;
+    left: 12px;
+}
+
+.product-layout::after {
+    bottom: 12px;
+    right: 12px;
+    transform: rotate(180deg);
+}
+
+.image-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.main-image {
+    width: 100%;
+    height: 500px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(245, 238, 220, 0.5), rgba(237, 231, 220, 0.5));
+    border: 3px solid rgba(139, 101, 71, 0.15);
+    box-shadow: 
+        0 6px 24px rgba(139, 101, 71, 0.12),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    position: relative;
+}
+
+/* Decorative frame corners */
+.main-image::before,
+.main-image::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(139, 101, 71, 0.3);
+    z-index: 2;
+}
+
+.main-image::before {
+    top: 8px;
+    left: 8px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.main-image::after {
+    bottom: 8px;
+    right: 8px;
+    border-left: none;
+    border-top: none;
+}
+
+.main-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.main-image:hover img {
+    transform: scale(1.03);
+}
+
+.thumbnail-images {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 4px;
+}
+
+.thumbnail {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid rgba(139, 101, 71, 0.15);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(245, 238, 220, 0.5), rgba(237, 231, 220, 0.5));
+    box-shadow: 0 2px 8px rgba(139, 101, 71, 0.08);
+}
+
+.thumbnail.active {
+    border-color: #8b6547;
+    box-shadow: 0 4px 16px rgba(139, 101, 71, 0.25);
+    transform: scale(1.05);
+}
+
+.thumbnail:hover {
+    border-color: #8b6547;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 101, 71, 0.2);
+}
+
+.thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-info h1 {
+    font-size: 2rem;
+    color: #3E2723;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.artist-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b4423;
+    margin-bottom: 1.5rem;
+    font-size: 14px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: rgba(139, 101, 71, 0.06);
+    border-radius: 8px;
+    border: 1px solid rgba(139, 101, 71, 0.1);
+    width: fit-content;
+}
+
+.artist-info .material-symbols-outlined {
+    font-size: 18px;
+    color: #8b6547;
+}
+
+.price-section {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #d4722c 0%, #c95a1d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 2px 4px rgba(210, 105, 30, 0.1);
+}
+
+.tags {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.tag {
+    padding: 8px 18px;
+    background: linear-gradient(135deg, rgba(139, 101, 71, 0.08), rgba(139, 101, 71, 0.06));
+    border-radius: 50px;
+    font-size: 13px;
+    color: #4a3728;
+    font-weight: 600;
+    border: 1px solid rgba(139, 101, 71, 0.15);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(139, 101, 71, 0.06);
+}
+
+.tag:hover {
+    background: linear-gradient(135deg, rgba(139, 101, 71, 0.12), rgba(139, 101, 71, 0.08));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(139, 101, 71, 0.12);
+    border-color: rgba(139, 101, 71, 0.25);
+}
+
+.description-section {
+    margin-bottom: 2rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, rgba(255, 250, 240, 0.5), rgba(250, 245, 235, 0.5));
+    border-radius: 12px;
+    border: 1px solid rgba(139, 101, 71, 0.12);
+    box-shadow: inset 0 2px 4px rgba(139, 101, 71, 0.04);
+}
+
+.description-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: #3E2723;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.description-section h3::before {
+    content: '✦';
+    color: #8b6547;
+    font-size: 14px;
+}
+
+.description-section p {
+    line-height: 1.8;
+    color: #4a3728;
+    font-size: 14px;
+}
+
+.product-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-buy {
+    flex: 1;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #3E2723 0%, #2c1b17 100%);
+    color: white;
+    border: 2px solid #3E2723;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 
+        0 4px 12px rgba(62, 39, 35, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-buy::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-buy:hover::before {
+    left: 100%;
+}
+
+.btn-buy:hover {
+    background: linear-gradient(135deg, #2c1b17 0%, #1a0f0d 100%);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 20px rgba(62, 39, 35, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-buy:active {
+    transform: translateY(0);
+}
+
+.btn-contact {
+    padding: 14px 24px;
+    background: linear-gradient(135deg, rgba(255, 250, 240, 0.9), rgba(250, 245, 235, 0.9));
+    color: #3E2723;
+    border: 2px solid rgba(139, 101, 71, 0.3);
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(139, 101, 71, 0.12);
+}
+
+.btn-contact:hover {
+    background: linear-gradient(135deg, #3E2723 0%, #2c1b17 100%);
+    color: white;
+    border-color: #3E2723;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(62, 39, 35, 0.25);
+}
+
+.btn-contact:active {
+    transform: translateY(0);
+}
+
+.stats-row {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, rgba(139, 101, 71, 0.06), rgba(139, 101, 71, 0.04));
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    border: 1px solid rgba(139, 101, 71, 0.12);
+    box-shadow: inset 0 2px 4px rgba(139, 101, 71, 0.04);
+}
+
+.stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #4a3728;
+    font-weight: 600;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, rgba(255, 250, 240, 0.9), rgba(250, 245, 235, 0.9));
+    border-radius: 8px;
+    border: 1px solid rgba(139, 101, 71, 0.15);
+    box-shadow: 0 2px 6px rgba(139, 101, 71, 0.08);
+    transition: all 0.2s ease;
+}
+
+.stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 101, 71, 0.15);
+}
+
+.stat .material-symbols-outlined {
+    color: #d4722c;
+    font-size: 20px;
+}
+
+.loading-detail {
+    text-align: center;
+    padding: 4rem;
+    color: #6b4423;
+    font-weight: 500;
+}
+
+.spinner {
+    border: 4px solid rgba(139, 101, 71, 0.15);
+    border-top: 4px solid #8b6547;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: linear-gradient(135deg, rgba(255, 250, 240, 0.7), rgba(250, 245, 235, 0.7));
+    border-radius: 16px;
+    border: 2px solid rgba(139, 101, 71, 0.12);
+}
+
+.empty-state .material-symbols-outlined {
+    font-size: 80px;
+    color: rgba(139, 101, 71, 0.3);
+    margin-bottom: 1.5rem;
+}
+
+.empty-state h3 {
+    font-size: 24px;
+    color: #3E2723;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+}
+
+.empty-state p {
+    color: #6b4423;
+    margin-bottom: 1.5rem;
+    font-size: 15px;
+}
+
+@media (max-width: 768px) {
+    .product-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 1.5rem;
+    }
+
+    .main-image {
+        height: 350px;
+    }
+
+    .product-actions {
+        flex-direction: column;
+    }
+
+    .product-info h1 {
+        font-size: 1.5rem;
+    }
+
+    .price-section {
+        font-size: 1.5rem;
+    }
+
+    .stats-row {
+        gap: 0.75rem;
+    }
+
+    .stat {
+        font-size: 13px;
+        padding: 6px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-detail-container {
+        padding: 0 1rem;
+    }
+
+    .back-button {
+        font-size: 13px;
+    }
+
+    .thumbnail {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+</style>
+
+
+<div class="product-detail-container">
+    <a href="/marketplace" class="back-button">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Back to Marketplace
+    </a>
+
+    <div id="productDetail" class="loading-detail">
+        <div class="spinner"></div>
+        Loading product details...
+    </div>
+</div>
+
+<script>
+    const productId = '{{ product_id }}';
+
+    async function loadProductDetail() {
+        try {
+            const response = await fetch(`/api/product/${productId}`);
+            if (!response.ok) throw new Error('Product not found');
+            
+            const product = await response.json();
+            displayProductDetail(product);
+        } catch (error) {
+            console.error('Error loading product:', error);
+            document.getElementById('productDetail').innerHTML = `
+                <div class="empty-state">
+                    <span class="material-symbols-outlined">error</span>
+                    <h3>Product Not Found</h3>
+                    <p>The product you're looking for doesn't exist or has been removed.</p>
+                    <a href="/marketplace" class="btn-buy" style="display: inline-block; margin-top: 1rem;">
+                        Back to Marketplace
+                    </a>
+                </div>
+            `;
+        }
+    }
+
+    function displayProductDetail(product) {
+        const container = document.getElementById('productDetail');
+        
+        container.innerHTML = `
+            <div class="product-layout">
+                <div class="image-gallery">
+                    <div class="main-image">
+                        <img id="mainImage" src="${product.images[0]}" alt="${product.name}">
+                    </div>
+                    ${product.images.length > 1 ? `
+                        <div class="thumbnail-images">
+                            ${product.images.map((img, index) => `
+                                <div class="thumbnail ${index === 0 ? 'active' : ''}" onclick="changeImage('${img}', ${index})">
+                                    <img src="${img}" alt="Thumbnail ${index + 1}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="product-info">
+                    <h1>${product.name}</h1>
+                    <div class="artist-info">
+                        <span class="material-symbols-outlined">person</span>
+                        <span>by ${product.artist}</span>
+                        <span class="material-symbols-outlined">location_on</span>
+                        <span>${product.location}</span>
+                    </div>
+
+                    ${product.price > 0 ? 
+                        `<div class="price-section">₹${product.price.toLocaleString()}</div>` : 
+                        `<div class="price-section" style="font-size: 1.3rem; color: #666;">Contact for pricing</div>`
+                    }
+
+                    <div class="tags">
+                        <span class="tag">${product.category}</span>
+                        <span class="tag">${product.material}</span>
+                        ${product.authentic ? '<span class="tag" style="background: #e8f5e9; color: #2e7d32;">✓ Authentic</span>' : ''}
+                    </div>
+
+                    <div class="stats-row">
+                        <div class="stat">
+                            <span class="material-symbols-outlined">visibility</span>
+                            <span>${product.views} views</span>
+                        </div>
+                        <div class="stat">
+                            <span class="material-symbols-outlined">favorite</span>
+                            <span>${product.likes} likes</span>
+                        </div>
+                        <div class="stat">
+                            <span class="material-symbols-outlined">star</span>
+                            <span>${product.rating} rating</span>
+                        </div>
+                    </div>
+
+                    <div class="description-section">
+                        <h3>About this artwork</h3>
+                        <p>${product.description}</p>
+                    </div>
+
+                    <div class="description-section">
+                        <h3>Materials Used</h3>
+                        <p>${product.material}</p>
+                    </div>
+
+                    <div class="product-actions">
+                        ${product.price > 0 ? 
+                            `<button class="btn-buy" onclick="buyProduct()">Buy Now - ₹${product.price.toLocaleString()}</button>` : 
+                            `<button class="btn-buy" onclick="contactArtist()">Contact Artist</button>`
+                        }
+                        <button class="btn-contact" onclick="contactArtist()">
+                            <span class="material-symbols-outlined" style="vertical-align: middle;">mail</span>
+                            Contact Artist
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function changeImage(imageSrc, index) {
+        document.getElementById('mainImage').src = imageSrc;
+        document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
+            thumb.classList.toggle('active', i === index);
+        });
+    }
+
+    function buyProduct() {
+        alert('Proceeding to checkout....');
+    }
+
+    function contactArtist() {
+        alert('Contact artist feature coming soon!');
+    }
+
+    // Load product on page load
+    loadProductDetail();
+</script>
+
+
+{% endblock %}
