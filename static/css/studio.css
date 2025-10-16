@@ -1217,3 +1217,103 @@ body {
   font-size: 20px;
   vertical-align: middle;
 }
+
+.product-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.btn-buy {
+    flex: 1;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #3E2723 0%, #2c1b17 100%);
+    color: white;
+    border: 2px solid #3E2723;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 
+        0 4px 12px rgba(62, 39, 35, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-buy::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-buy:hover::before {
+    left: 100%;
+}
+
+.btn-buy:hover {
+    background: linear-gradient(135deg, #2c1b17 0%, #1a0f0d 100%);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 20px rgba(62, 39, 35, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-buy:active {
+    transform: translateY(0);
+}
+
+.secondary-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-contact {
+    flex: 1;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, rgba(255, 250, 240, 0.9), rgba(250, 245, 235, 0.9));
+    color: #3E2723;
+    border: 2px solid rgba(139, 101, 71, 0.3);
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(139, 101, 71, 0.12);
+}
+
+.btn-contact:hover {
+    background: linear-gradient(135deg, #3E2723 0%, #2c1b17 100%);
+    color: white;
+    border-color: #3E2723;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(62, 39, 35, 0.25);
+}
+
+.btn-contact:active {
+    transform: translateY(0);
+}
+
+#suggestPriceBtnInline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    font-size: 12px !important;
+    padding: 5px 10px !important;
+}

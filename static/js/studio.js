@@ -1,9 +1,19 @@
+async function fetchWithXHR(url, options = {}) {
+    const defaultHeaders = {
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+
+    const mergedHeaders = { ...defaultHeaders, ...options.headers };
+
+    return fetch(url, { ...options, headers: mergedHeaders });
+}
+
 let isLoggedIn = false;
 let selectedFiles = [];
 
 window.addEventListener('DOMContentLoaded', async () => {
     try {
-        const response = await fetch('/api/check-auth');
+        const response = await fetchWithXHR('/api/check-auth');
         const data = await response.json();
 
         if (!data.logged_in) {
@@ -47,6 +57,182 @@ uploadArea.addEventListener('drop', (e) => {
 
 fileInput.addEventListener('change', (e) => {
     handleFiles(e.target.files);
+});
+
+document.getElementById('suggestPriceBtn').addEventListener('click', async () => {
+    const title = document.getElementById('artworkTitle').value;
+    const category = document.getElementById('category').value;
+    const material = document.getElementById('materialUsed').value;
+    const description = document.getElementById('description').value;
+
+    if (!selectedFiles[0]) {
+        alert('Please select an image first.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('material', material);
+    formData.append('description', description);
+    formData.append('file', selectedFiles[0]);
+
+    const suggestBtn = document.getElementById('suggestPriceBtn');
+    suggestBtn.disabled = true;
+    suggestBtn.innerHTML = 'Suggesting...';
+
+    try {
+        const response = await fetchWithXHR('/api/suggest-price', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('price').value = data.price.replace(/[^0-9.]/g, '');
+        } else {
+            alert('Failed to suggest price: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error suggesting price:', error);
+        alert('An error occurred while suggesting the price.');
+    } finally {
+        suggestBtn.disabled = false;
+        suggestBtn.innerHTML = '<div class="tool-content"><span class="tool-name">Suggest Fair Price</span><span class="tool-desc">Market-based pricing</span></div><span class="tool-arrow">→</span>';
+    }
+});
+
+document.getElementById('suggestPriceBtnInline').addEventListener('click', async () => {
+    const title = document.getElementById('artworkTitle').value;
+    const category = document.getElementById('category').value;
+    const material = document.getElementById('materialUsed').value;
+    const description = document.getElementById('description').value;
+
+    if (!selectedFiles[0]) {
+        alert('Please select an image first.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('material', material);
+    formData.append('description', description);
+    formData.append('file', selectedFiles[0]);
+
+    const suggestBtn = document.getElementById('suggestPriceBtnInline');
+    suggestBtn.disabled = true;
+    suggestBtn.innerHTML = 'Suggesting...';
+
+    try {
+        const response = await fetchWithXHR('/api/suggest-price', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('price').value = data.price.replace(/[^0-9.]/g, '');
+        } else {
+            alert('Failed to suggest price: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error suggesting price:', error);
+        alert('An error occurred while suggesting the price.');
+    } finally {
+        suggestBtn.disabled = false;
+        suggestBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span> Suggest Fair Price';
+    }
+});
+
+document.getElementById('generateDescBtn').addEventListener('click', async () => {
+    const title = document.getElementById('artworkTitle').value;
+    const category = document.getElementById('category').value;
+    const material = document.getElementById('materialUsed').value;
+    const existing_description = document.getElementById('description').value;
+
+    if (!selectedFiles[0]) {
+        alert('Please select an image first.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('material', material);
+    formData.append('description', existing_description);
+    formData.append('file', selectedFiles[0]);
+
+    const generateBtn = document.getElementById('generateDescBtn');
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = 'Generating...';
+
+    try {
+        const response = await fetchWithXHR('/api/generate-description', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('description').value = data.description;
+        } else {
+            alert('Failed to generate description: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error generating description:', error);
+        alert('An error occurred while generating the description.');
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span> Generate';
+    }
+});
+
+document.getElementById('generateDescBtnAi').addEventListener('click', async () => {
+    const title = document.getElementById('artworkTitle').value;
+    const category = document.getElementById('category').value;
+    const material = document.getElementById('materialUsed').value;
+    const existing_description = document.getElementById('description').value;
+
+    if (!selectedFiles[0]) {
+        alert('Please select an image first.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('material', material);
+    formData.append('description', existing_description);
+    formData.append('file', selectedFiles[0]);
+
+    const generateBtn = document.getElementById('generateDescBtnAi');
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = 'Generating...';
+
+    try {
+        const response = await fetchWithXHR('/api/generate-description', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('description').value = data.description;
+        } else {
+            alert('Failed to generate description: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error generating description:', error);
+        alert('An error occurred while generating the description.');
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<div class="tool-content"><span class="tool-name">Generate Description</span><span class="tool-desc">AI-powered writing</span></div><span class="tool-arrow">→</span>';
+    }
 });
 
 function handleFiles(files) {
@@ -123,7 +309,7 @@ async function handleArtworkSubmit(event) {
     submitBtn.disabled = true;
     
     try {
-        const response = await fetch('/api/upload-artwork', {
+        const response = await fetchWithXHR('/api/upload-artwork', {
             method: 'POST',
             body: formData
         });
@@ -156,7 +342,7 @@ async function handleArtworkSubmit(event) {
 // Load user's artworks
 async function loadMyArtworks() {
     try {
-        const response = await fetch('/api/my-artworks');
+        const response = await fetchWithXHR('/api/my-artworks');
         const data = await response.json();
         
         if (data.success) {
@@ -198,17 +384,45 @@ function displayArtworks(artworks) {
                     <span><i class="fas fa-eye"></i> ${artwork.views || 0}</span>
                     <span><i class="fas fa-heart"></i> ${artwork.likes || 0}</span>
                 </div>
-                <div class="artwork-actions">
-                    <button class="btn-edit" onclick="editArtwork('${artwork.id}')">
-                        <span class="material-symbols-outlined">edit</span> Edit
+                <div class="product-actions">
+                    <button class="btn-buy" onclick="viewProduct('${artwork.id}')">
+                        <span class="material-symbols-outlined">visibility</span>
+                        View Artwork
                     </button>
-                    <button class="btn-delete" onclick="deleteArtwork('${artwork.id}')">
-                        <span class="material-symbols-outlined">delete</span> Delete
-                    </button>
+                    <div class="secondary-actions">
+                        <button class="btn-contact" onclick="openQrCodeModal('${artwork.id}')">
+                            <span class="material-symbols-outlined">qr_code_2</span>
+                            QR Code
+                        </button>
+                        <button class="btn-contact" onclick="deleteArtwork('${artwork.id}')">
+                            <span class="material-symbols-outlined">delete</span>
+                            Delete
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     `).join('');
+}
+
+
+
+function openQrCodeModal(artworkId) {
+    const qrCodeContainer = document.getElementById('qrCodeContainer');
+    qrCodeContainer.innerHTML = ''; // Clear previous QR code
+    const img = document.createElement('img');
+    img.src = `/api/generate-qr/${artworkId}`;
+    qrCodeContainer.appendChild(img);
+    document.getElementById('qrCodeModal').style.display = 'flex';
+}
+
+function closeQrCodeModal() {
+    document.getElementById('qrCodeModal').style.display = 'none';
+}
+
+function viewProduct(productId) {
+    // You can implement a modal or redirect to product detail page
+    window.location.href = `/product/${productId}`;
 }
 
 async function deleteArtwork(artworkId) {
@@ -217,7 +431,7 @@ async function deleteArtwork(artworkId) {
     }
     
     try {
-        const response = await fetch(`/api/delete-artwork/${artworkId}`, {
+        const response = await fetchWithXHR(`/api/delete-artwork/${artworkId}`, {
             method: 'DELETE'
         });
         
@@ -336,7 +550,7 @@ async function handleLogin(event) {
     const password = document.getElementById('loginPassword').value;
 
     try {
-        const response = await fetch('/login', {
+        const response = await fetchWithXHR('/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -368,7 +582,7 @@ async function handleSignup(event) {
     }
 
     try {
-        const response = await fetch('/signup', {
+        const response = await fetchWithXHR('/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password })

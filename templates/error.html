@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block title %}Error{% endblock %}
+{% block content %}
+<div class="container" style="text-align: center; padding: 50px;">
+    <h1 style="font-size: 3em; color: #dc3545;">Access Denied</h1>
+    <p style="font-size: 1.2em;">{{ error }}</p>
+    <p>You are not allowed to access this page directly.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary" style="margin-top: 20px;">Go to Homepage</a>
+</div>
+{% endblock %}

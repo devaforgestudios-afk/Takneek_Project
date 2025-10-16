@@ -68,7 +68,13 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="description">Description / Story</label>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <label for="description">Description / Story</label>
+                                        <button type="button" id="generateDescBtn" class="btn-secondary" style="padding: 5px 10px; font-size: 12px; margin-left: 10px; margin-bottom: 5px;">
+                                            <span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span>
+                                            Generate Description
+                                        </button>
+                                    </div>
                                     <textarea id="description" rows="4"
                                         placeholder="Tell the story behind your creation..." required></textarea>
                                 </div>
@@ -76,11 +82,15 @@
                                 <div class="form-group">
                                     <label for="price">Price (₹) - Optional</label>
                                     <input type="number" id="price" placeholder="e.g., 2500" min="0">
+                                    <button type="button" id="suggestPriceBtnInline" class="btn-secondary" style="padding: 5px 10px; font-size: 12px; margin-top: 5px;">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span>
+                                        Suggest Fair Price
+                                    </button>
                                 </div>
 
                                 <div class="form-group">
                                     <label>Upload Media</label>
-                                    <div class="upload-area" id="uploadArea">
+                                    <div class="upload-area" id="uploadArea"> 
                                         <span class="material-symbols-outlined upload-icon">cloud_upload</span>
                                         <p class="upload-text">Drag and drop your files here, or click to browse</p>
                                         <p class="upload-hint">Supports Images, Videos, PDFs</p>
@@ -106,10 +116,17 @@
 
                             <div class="tools-grid">
 
-                                <button class="tool-item">
+                                <button class="tool-item" id="suggestPriceBtn">
                                     <div class="tool-content">
                                         <span class="tool-name">Suggest Fair Price</span>
                                         <span class="tool-desc">Market-based pricing</span>
+                                    </div>
+                                    <span class="tool-arrow">→</span>
+                                </button>
+                                <button class="tool-item" id="generateDescBtnAi">
+                                    <div class="tool-content">
+                                        <span class="tool-name">Generate Description</span>
+                                        <span class="tool-desc">AI-powered writing</span>
                                     </div>
                                     <span class="tool-arrow">→</span>
                                 </button>
@@ -120,21 +137,6 @@
                                     </div>
                                     <span class="tool-arrow">→</span>
                                 </button>
-                                <button class="tool-item">
-                                    <div class="tool-content">
-                                        <span class="tool-name">Generate QR Code</span>
-                                        <span class="tool-desc">Share your work easily</span>
-                                    </div>
-                                    <span class="tool-arrow">→</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="preview-card">
-                            <h3 class="preview-title">Preview</h3>
-                            <p class="preview-subtitle">See how your work will appear</p>
-                            <div class="preview-box">
-                                <p class="preview-placeholder">Your artwork preview will appear here</p>
                             </div>
                         </div>
                     </div>
@@ -154,6 +156,18 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- QR Code Modal -->
+<div id="qrCodeModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeQrCodeModal()">&times;</button>
+        <div class="modal-header">
+            <h2 class="modal-title">Scan QR Code</h2>
+            <p class="modal-subtitle">Share your artwork with a single scan</p>
+        </div>
+        <div id="qrCodeContainer" style="text-align: center;"></div>
+    </div>
 </div>
 
 <!-- Auth Modal -->

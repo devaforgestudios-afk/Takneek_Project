@@ -156,23 +156,25 @@ function displayProducts() {
 }
 
 // Apply filters and sorting
-function applyFilters() {
-    filteredProducts = [...allProducts];
+async function applyFilters() {
+    const searchQuery = document.getElementById('searchInput').value;
 
     if (searchQuery) {
-        filteredProducts = filteredProducts.filter(p => 
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.material.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }
-
-    if (currentCategory !== 'all') {
-        filteredProducts = filteredProducts.filter(p => 
-            p.category.toLowerCase() === currentCategory.toLowerCase()
-        );
+        try {
+            const response = await fetch(`/api/ai-search?query=${searchQuery}&category=${currentCategory}`);
+            if (!response.ok) throw new Error('AI search failed');
+            filteredProducts = await response.json();
+        } catch (error) {
+            console.error('Error during AI search:', error);
+            filteredProducts = [];
+        }
+    } else {
+        filteredProducts = [...allProducts];
+        if (currentCategory !== 'all') {
+            filteredProducts = filteredProducts.filter(p => 
+                p.category.toLowerCase() === currentCategory.toLowerCase()
+            );
+        }
     }
 
     switch(currentSort) {
@@ -249,7 +251,6 @@ document.getElementById('sort').addEventListener('change', function() {
 });
 
 document.getElementById('searchInput').addEventListener('input', function(e) {
-    searchQuery = e.target.value;
     applyFilters();
 });
 

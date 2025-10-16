@@ -645,39 +645,404 @@ body::after {
                         <p>${product.material}</p>
                     </div>
 
-                    <div class="product-actions">
-                        ${product.price > 0 ? 
-                            `<button class="btn-buy" onclick="buyProduct()">Buy Now - ₹${product.price.toLocaleString()}</button>` : 
-                            `<button class="btn-buy" onclick="contactArtist()">Contact Artist</button>`
+                                        <div class="product-actions">
+
+                                            ${product.price > 0 ? 
+
+                                                `<button class="btn-buy" onclick="buyProduct()">Buy Now - ₹${product.price.toLocaleString()}</button>` : 
+
+                                                `<button class="btn-buy" onclick="contactArtist()">Contact Artist</button>`
+
+                                            }
+
+                                            <div class="secondary-actions">
+
+                                                <button class="btn-contact" onclick="contactArtist()">
+
+                                                    <span class="material-symbols-outlined" style="vertical-align: middle;">mail</span>
+
+                                                    Contact Artist
+
+                                                </button>
+
+                                                <button class="btn-contact" onclick="openShareModal()">
+
+                                                    <span class="material-symbols-outlined" style="vertical-align: middle;">share</span>
+
+                                                    Share
+
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            `;
+
                         }
-                        <button class="btn-contact" onclick="contactArtist()">
-                            <span class="material-symbols-outlined" style="vertical-align: middle;">mail</span>
-                            Contact Artist
-                        </button>
+
+                    
+
+                        function changeImage(imageSrc, index) {
+
+                            document.getElementById('mainImage').src = imageSrc;
+
+                            document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
+
+                                thumb.classList.toggle('active', i === index);
+
+                            });
+
+                        }
+
+                    
+
+                        function buyProduct() {
+
+                            alert('Proceeding to checkout....');
+
+                        }
+
+                    
+
+                        function contactArtist() {
+
+                            alert('Contact artist feature coming soon!');
+
+                        }
+
+                    
+
+                        function openShareModal() {
+
+                            const shareLink = window.location.href;
+
+                            document.getElementById('shareLink').value = shareLink;
+
+                            document.getElementById('shareModal').style.display = 'flex';
+
+                            
+
+                            // Clear previous QR code
+
+                            document.getElementById('qrcode').innerHTML = '';
+
+                            
+
+                            new QRCode(document.getElementById("qrcode"), {
+
+                                text: shareLink,
+
+                                width: 200,
+
+                                height: 200,
+
+                                colorDark : "#3E2723",
+
+                                colorLight : "#ffffff",
+
+                            });
+
+                        }
+
+                    
+
+                        function closeShareModal() {
+
+                            document.getElementById('shareModal').style.display = 'none';
+
+                        }
+
+                    
+
+                        function copyLink() {
+
+                            const shareLink = document.getElementById('shareLink');
+
+                            shareLink.select();
+
+                            shareLink.setSelectionRange(0, 99999); 
+
+                            document.execCommand('copy');
+
+                            alert('Link copied to clipboard!');
+
+                        }
+
+                    
+
+                        window.onclick = function(event) {
+
+                            const modal = document.getElementById('shareModal');
+
+                            if (event.target == modal) {
+
+                                modal.style.display = "none";
+
+                            }
+
+                        }
+
+                    
+
+                        // Load product on page load
+
+                        loadProductDetail();
+
+                    </script>
+
+                    
+
+                    <div id="shareModal" class="modal">
+
+                        <div class="modal-content">
+
+                            <span class="close" onclick="closeShareModal()">&times;</span>
+
+                            <h2>Share this Artwork</h2>
+
+                            <div class="qr-code-container">
+
+                                <div id="qrcode"></div>
+
+                            </div>
+
+                            <p>Scan the QR code or copy the link below</p>
+
+                            <div class="share-link-container">
+
+                                <input type="text" value="" id="shareLink" readonly>
+
+                                <button onclick="copyLink()" class="btn-copy">
+
+                                    <span class="material-symbols-outlined">content_copy</span>
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
                     </div>
-                </div>
-            </div>
-        `;
-    }
 
-    function changeImage(imageSrc, index) {
-        document.getElementById('mainImage').src = imageSrc;
-        document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
-            thumb.classList.toggle('active', i === index);
-        });
-    }
+                    
 
-    function buyProduct() {
-        alert('Proceeding to checkout....');
-    }
+                    <style>
 
-    function contactArtist() {
-        alert('Contact artist feature coming soon!');
-    }
+                        .product-actions {
 
-    // Load product on page load
-    loadProductDetail();
-</script>
+                            flex-direction: column;
 
+                        }
 
-{% endblock %}
+                        .secondary-actions {
+
+                            display: flex;
+
+                            gap: 1rem;
+
+                            margin-top: 1rem;
+
+                        }
+
+                        .secondary-actions .btn-contact {
+
+                            flex: 1;
+
+                        }
+
+                    
+
+                        .modal {
+
+                            display: none;
+
+                            position: fixed;
+
+                            z-index: 1000;
+
+                            left: 0;
+
+                            top: 0;
+
+                            width: 100%;
+
+                            height: 100%;
+
+                            overflow: auto;
+
+                            background-color: rgba(0,0,0,0.6);
+
+                            align-items: center;
+
+                            justify-content: center;
+
+                        }
+
+                        .modal-content {
+
+                            background: linear-gradient(135deg, rgba(255, 250, 240, 0.95) 0%, rgba(250, 245, 235, 0.95) 100%);
+
+                            padding: 2rem;
+
+                            border: 2px solid rgba(139, 101, 71, 0.2);
+
+                            width: 90%;
+
+                            max-width: 400px;
+
+                            text-align: center;
+
+                            border-radius: 16px;
+
+                            box-shadow: 0 8px 32px rgba(139, 101, 71, 0.15);
+
+                            position: relative;
+
+                            backdrop-filter: blur(10px);
+
+                        }
+
+                        .modal-content h2 {
+
+                            color: #3E2723;
+
+                            font-weight: 700;
+
+                            margin-bottom: 1.5rem;
+
+                        }
+
+                        .close {
+
+                            color: #8b6547;
+
+                            position: absolute;
+
+                            top: 1rem;
+
+                            right: 1rem;
+
+                            font-size: 32px;
+
+                            font-weight: bold;
+
+                            transition: color 0.3s ease;
+
+                        }
+
+                        .close:hover,
+
+                        .close:focus {
+
+                            color: #3E2723;
+
+                            text-decoration: none;
+
+                            cursor: pointer;
+
+                        }
+
+                        .qr-code-container {
+
+                            margin: 1.5rem auto;
+
+                            padding: 1rem;
+
+                            background: white;
+
+                            border-radius: 12px;
+
+                            border: 2px solid rgba(139, 101, 71, 0.2);
+
+                            display: inline-block;
+
+                        }
+
+                        #qrcode {
+
+                            width: 200px;
+
+                            height: 200px;
+
+                        }
+
+                        .modal-content p {
+
+                            color: #6b4423;
+
+                            font-size: 14px;
+
+                            margin-bottom: 1rem;
+
+                        }
+
+                        .share-link-container {
+
+                            display: flex;
+
+                            gap: 0.5rem;
+
+                        }
+
+                        #shareLink {
+
+                            width: 100%;
+
+                            padding: 12px;
+
+                            border: 1px solid rgba(139, 101, 71, 0.2);
+
+                            border-radius: 8px;
+
+                            background: rgba(255, 255, 255, 0.7);
+
+                            color: #3E2723;
+
+                            font-size: 14px;
+
+                        }
+
+                        .btn-copy {
+
+                            padding: 10px;
+
+                            background: linear-gradient(135deg, #3E2723 0%, #2c1b17 100%);
+
+                            color: white;
+
+                            border: none;
+
+                            border-radius: 8px;
+
+                            cursor: pointer;
+
+                            display: flex;
+
+                            align-items: center;
+
+                            justify-content: center;
+
+                            transition: background 0.3s ease;
+
+                        }
+
+                        .btn-copy:hover {
+
+                            background: linear-gradient(135deg, #2c1b17 0%, #1a0f0d 100%);
+
+                        }
+
+                    </style>
+
+                    
+
+                    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+
+                    
+
+                    {% endblock %}
