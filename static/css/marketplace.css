@@ -79,8 +79,8 @@ body::after {
 }
 
 .hero-title {
-    font-size: 4rem;
-    font-weight: 400;
+    font-size:5rem;
+    font-weight: bolder;
     margin-bottom: 20px;
     color: #3d2817;
 }

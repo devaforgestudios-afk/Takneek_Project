@@ -12,7 +12,7 @@
         ],
         "created_at": "2025-10-15T17:17:05.213425",
         "status": "published",
-        "views": 32,
+        "views": 39,
         "likes": 0
     },
     {
@@ -28,8 +28,11 @@
         ],
         "created_at": "2025-10-16T13:39:08.582217",
         "status": "published",
-        "views": 61,
-        "likes": 0
+        "views": 109,
+        "likes": 0,
+        "feedback": [
+            "wonderful item with good quality worth the price.\r\n"
+        ]
     },
     {
         "id": "20251016143112359824",
@@ -44,7 +47,7 @@
         ],
         "created_at": "2025-10-16T14:31:12.359902",
         "status": "published",
-        "views": 3,
+        "views": 12,
         "likes": 0
     },
     {
@@ -61,6 +64,22 @@
         "created_at": "2025-10-16T21:05:25.460539",
         "status": "published",
         "views": 0,
+        "likes": 0
+    },
+    {
+        "id": "20251016214016843925",
+        "user_email": "creativecoder7709@gmail.com",
+        "title": "Indian Wood Carving",
+        "category": "woodwork",
+        "material": "sandlewood",
+        "description": "Crafted from fragrant sandalwood, this exquisite Indian wood carving tells a story of divine blessings. Intricate detailing brings to life Ganesha, Lakshmi, and Saraswati, flanked by majestic elephants. Each stroke of the artisan's hand imbues this masterpiece with spiritual resonance and timeless beauty, a cherished heirloom for any discerning collector.",
+        "price": 12500.0,
+        "files": [
+            "uploads/artworks/20251016_214016_images.jpg"
+        ],
+        "created_at": "2025-10-16T21:40:16.843999",
+        "status": "published",
+        "views": 2,
         "likes": 0
     }
 ]

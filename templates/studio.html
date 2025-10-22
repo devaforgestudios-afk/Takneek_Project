@@ -26,6 +26,7 @@
             <div class="studio-tabs">
                 <button class="studio-tab active" data-tab="upload">Upload New Work</button>
                 <button class="studio-tab" data-tab="works">My Works</button>
+                <button class="studio-tab" data-tab="profile">Profile</button>
                 <a href="/logout" class="studio-tab" id="logout-button">
                     <span class="material-symbols-outlined">logout</span>
                     Logout
@@ -70,8 +71,10 @@
                                 <div class="form-group">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <label for="description">Description / Story</label>
-                                        <button type="button" id="generateDescBtn" class="btn-secondary" style="padding: 5px 10px; font-size: 12px; margin-left: 10px; margin-bottom: 5px;">
-                                            <span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span>
+                                        <button type="button" id="generateDescBtn" class="btn-secondary"
+                                            style="padding: 5px 10px; font-size: 12px; margin-left: 10px; margin-bottom: 5px;">
+                                            <span class="material-symbols-outlined"
+                                                style="font-size: 16px;">auto_awesome</span>
                                             Generate Description
                                         </button>
                                     </div>
@@ -81,16 +84,13 @@
 
                                 <div class="form-group">
                                     <label for="price">Price (₹) - Optional</label>
+
                                     <input type="number" id="price" placeholder="e.g., 2500" min="0">
-                                    <button type="button" id="suggestPriceBtnInline" class="btn-secondary" style="padding: 5px 10px; font-size: 12px; margin-top: 5px;">
-                                        <span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span>
-                                        Suggest Fair Price
-                                    </button>
                                 </div>
 
                                 <div class="form-group">
                                     <label>Upload Media</label>
-                                    <div class="upload-area" id="uploadArea"> 
+                                    <div class="upload-area" id="uploadArea">
                                         <span class="material-symbols-outlined upload-icon">cloud_upload</span>
                                         <p class="upload-text">Drag and drop your files here, or click to browse</p>
                                         <p class="upload-hint">Supports Images, Videos, PDFs</p>
@@ -143,6 +143,61 @@
                 </div>
             </div>
 
+            <div id="profileTab" class="tab-content">
+                <div class="profile-section">
+                    <div class="profile-info-container">
+                        <div class="profile-card">
+                            <div class="profile-header">
+                                <div class="profile-avatar">
+                                    <span class="material-symbols-outlined">account_circle</span>
+                                </div>
+                                <div class="profile-info">
+                                    <h2 class="profile-name" id="profileName">Loading...</h2>
+                                    <p class="profile-email" id="profileEmail">Loading...</p>
+                                </div>
+                            </div>
+                            <div class="profile-stats">
+                                <div class="stat-item">
+                                    <span class="stat-value" id="totalArtworks">0</span>
+                                    <span class="stat-label">Artworks</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="totalViews">0</span>
+                                    <span class="stat-label">Total Views</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="totalLikes">0</span>
+                                    <span class="stat-label">Total Likes</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <button class="btn-marketplace btn-dark-marketplace" onclick="goToMarketplace()">
+                                <span class="material-symbols-outlined">storefront</span>
+                                Go to Your Marketplace
+                            </button>
+                        </div>
+                    </div>
+                    <div class="profile-qr-container">
+                        <div class="profile-qr-section">
+                            <h3 class="section-title">Your Artist Profile QR</h3>
+                            <p class="section-subtitle">Share this QR code to let others discover your artwork collection</p>
+                            <div class="qr-display" id="profileQrContainer">
+                                <div class="qr-loading">
+                                    <span class="material-symbols-outlined">hourglass_empty</span>
+                                    <p>Generating QR Code...</p>
+                                </div>
+                            </div>
+                            <button class="btn-primary" onclick="downloadProfileQr()">
+                                <span class="material-symbols-outlined">download</span>
+                                Download QR Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             <!-- My Works Tab Content -->
             <div id="worksTab" class="tab-content">
                 <div class="works-grid">
@@ -154,9 +209,15 @@
                     </div>
                 </div>
             </div>
+
         </div>
+
+
     </section>
 </div>
+
+
+
 
 <!-- QR Code Modal -->
 <div id="qrCodeModal" class="modal">

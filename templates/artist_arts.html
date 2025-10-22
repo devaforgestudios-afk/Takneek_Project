@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block title %}{{ artist_name }}'s Arts | Kalakar Sahayak{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css') }}">
+
+<div class="hero-section">
+    <h1 class="hero-title">Artworks by <span class="marketplace">{{ artist_name }}</span></h1>
+</div>
+
+<div class="container">
+    <a href="/marketplace" class="back-button" style="margin-bottom: 2rem; margin-left: 100px; display: inline-block; background: linear-gradient(135deg, #3E2723 0%, #2c1b17 100%); color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(62, 39, 35, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); transition: all 0.3s ease;">
+        <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">arrow_back</span>
+        Back to Marketplace
+    </a>
+    <div class="product-count">Showing {{ artworks|length }} products</div>
+
+    <div id="productsContainer" class="products-grid" style="zoom: 85%;">
+        {% if artworks %}
+            {% for product in artworks %}
+            <div class="product-card" onclick="viewProduct('{{ product.id }}')">
+                <div class="product-image-container">
+                    <img src="{{ url_for('static', filename=product.files[0]) }}" alt="{{ product.title }}" class="product-image" 
+                         onerror="this.src='https://via.placeholder.com/400x280/f9fafb/9ca3af?text=No+Image'">
+                    <span class="authentic-badge">Authentic</span>
+                    {% if product.files|length > 1 %}<span class="image-count-badge">{{ product.files|length }} photos</span>{% endif %}
+                </div>
+                <div class="product-details">
+                    <div class="product-header">
+                        <div style="flex: 1;">
+                            <h3 class="product-name">{{ product.title }}</h3>
+                        </div>
+                        {% if product.price > 0 %}
+                            <div class="product-price">₹{{ product.price|round|int }}</div>
+                        {% else %}
+                            <div class="product-price" style="font-size: 0.9rem; color: #999;">Contact for price</div>
+                        {% endif %}
+                    </div>
+                    <div class="product-meta">
+                        <span class="product-category">{{ product.category }}</span>
+                        <span class="product-material">{{ product.material }}</span>
+                    </div>
+                    <div class="product-description-preview">
+                        {{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}
+                    </div>
+                    <div class="product-stats">
+                        <div class="stat-item">
+                            <span class="material-symbols-outlined">visibility</span>
+                            <span>{{ product.views or 0 }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="material-symbols-outlined">favorite</span>
+                            <span>{{ product.likes or 0 }}</span>
+                        </div>
+                    </div>
+                    <button class="buy-btn" onclick="event.stopPropagation(); buyProduct('{{ product.id }}', '{{ product.title }}', {{ product.price or 0 }})">
+                        {% if product.price > 0 %}Buy Product{% else %}Contact Artist{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <span class="material-symbols-outlined">search_off</span>
+                <h3>No products found</h3>
+                <p>This artist has not published any artworks yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function viewProduct(productId) {
+    window.location.href = `/product/${productId}`;
+}
+
+function buyProduct(productId, productName, price) {
+    if (price === 0) {
+        alert(`Please contact the artist directly for pricing information about: ${productName}`);
+    } else {
+        viewProduct(productId);
+    }
+}
+</script>
+
+{% endblock %}

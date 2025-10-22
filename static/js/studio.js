@@ -12,6 +12,8 @@ let isLoggedIn = false;
 let selectedFiles = [];
 
 window.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded, initializing...');
+    
     try {
         const response = await fetchWithXHR('/api/check-auth');
         const data = await response.json();
@@ -24,6 +26,14 @@ window.addEventListener('DOMContentLoaded', async () => {
             isLoggedIn = true;
             enableStudioFeatures();
             loadMyArtworks();
+
+            // Retrieve last active tab from localStorage
+            const lastActiveTab = localStorage.getItem('activeStudioTab');
+            if (lastActiveTab && document.querySelector(`.studio-tab[data-tab="${lastActiveTab}"]`)) {
+                switchTab(lastActiveTab);
+            } else {
+                switchTab('upload'); // Default to upload if no stored tab or invalid
+            }
         }
     } catch (error) {
         console.error('Auth check failed:', error);
@@ -31,35 +41,57 @@ window.addEventListener('DOMContentLoaded', async () => {
         disableStudioFeatures();
         openAuthModal();
     }
+
+    // Setup tab event listeners AFTER DOM is loaded
+    setupTabListeners();
 });
+
+// Setup tab listeners function
+function setupTabListeners() {
+    const tabs = document.querySelectorAll('.studio-tab[data-tab]');
+    console.log('Found tabs:', tabs.length);
+    
+    tabs.forEach(tab => {
+        const tabName = tab.getAttribute('data-tab');
+        console.log('Setting up listener for tab:', tabName);
+        
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Tab clicked:', tabName);
+            switchTab(tabName);
+        });
+    });
+}
 
 // File handling
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
 const filePreview = document.getElementById('filePreview');
 
-uploadArea.addEventListener('click', () => fileInput.click());
+if (uploadArea && fileInput) {
+    uploadArea.addEventListener('click', () => fileInput.click());
 
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('dragover');
-});
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
 
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('dragover');
-});
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
 
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    handleFiles(e.dataTransfer.files);
-});
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
 
-fileInput.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
-});
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+}
 
-document.getElementById('suggestPriceBtn').addEventListener('click', async () => {
+document.getElementById('suggestPriceBtn')?.addEventListener('click', async () => {
     const title = document.getElementById('artworkTitle').value;
     const category = document.getElementById('category').value;
     const material = document.getElementById('materialUsed').value;
@@ -103,11 +135,70 @@ document.getElementById('suggestPriceBtn').addEventListener('click', async () =>
     }
 });
 
-document.getElementById('suggestPriceBtnInline').addEventListener('click', async () => {
+async function generateDescription() {
+    return new Promise(async (resolve, reject) => {
+        const title = document.getElementById('artworkTitle').value;
+        const category = document.getElementById('category').value;
+        const material = document.getElementById('materialUsed').value;
+        const existing_description = document.getElementById('description').value;
+
+        if (!selectedFiles[0]) {
+            alert('Please select an image first.');
+            return reject('No image selected');
+        }
+
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('category', category);
+        formData.append('material', material);
+        formData.append('description', existing_description);
+        formData.append('file', selectedFiles[0]);
+
+        const generateBtn = document.getElementById('generateDescBtn');
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = 'Generating...';
+
+        try {
+            const response = await fetchWithXHR('/api/generate-description', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('description').value = data.description;
+                resolve();
+            } else {
+                alert('Failed to generate description: ' + data.message);
+                reject(data.message);
+            }
+        } catch (error) {
+            console.error('Error generating description:', error);
+            alert('An error occurred while generating the description.');
+            reject(error);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span> Generate';
+        }
+    });
+}
+
+document.getElementById('suggestPriceBtnInline')?.addEventListener('click', async () => {
+    const description = document.getElementById('description').value;
+
+    if (!description) {
+        try {
+            await generateDescription();
+        } catch (error) {
+            return;
+        }
+    }
+
     const title = document.getElementById('artworkTitle').value;
     const category = document.getElementById('category').value;
     const material = document.getElementById('materialUsed').value;
-    const description = document.getElementById('description').value;
+    const updatedDescription = document.getElementById('description').value;
 
     if (!selectedFiles[0]) {
         alert('Please select an image first.');
@@ -118,7 +209,7 @@ document.getElementById('suggestPriceBtnInline').addEventListener('click', async
     formData.append('title', title);
     formData.append('category', category);
     formData.append('material', material);
-    formData.append('description', description);
+    formData.append('description', updatedDescription);
     formData.append('file', selectedFiles[0]);
 
     const suggestBtn = document.getElementById('suggestPriceBtnInline');
@@ -147,51 +238,15 @@ document.getElementById('suggestPriceBtnInline').addEventListener('click', async
     }
 });
 
-document.getElementById('generateDescBtn').addEventListener('click', async () => {
-    const title = document.getElementById('artworkTitle').value;
-    const category = document.getElementById('category').value;
-    const material = document.getElementById('materialUsed').value;
-    const existing_description = document.getElementById('description').value;
-
-    if (!selectedFiles[0]) {
-        alert('Please select an image first.');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('category', category);
-    formData.append('material', material);
-    formData.append('description', existing_description);
-    formData.append('file', selectedFiles[0]);
-
-    const generateBtn = document.getElementById('generateDescBtn');
-    generateBtn.disabled = true;
-    generateBtn.innerHTML = 'Generating...';
-
+document.getElementById('generateDescBtn')?.addEventListener('click', async () => {
     try {
-        const response = await fetchWithXHR('/api/generate-description', {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            document.getElementById('description').value = data.description;
-        } else {
-            alert('Failed to generate description: ' + data.message);
-        }
+        await generateDescription();
     } catch (error) {
-        console.error('Error generating description:', error);
-        alert('An error occurred while generating the description.');
-    } finally {
-        generateBtn.disabled = false;
-        generateBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span> Generate';
+        // Error already handled
     }
 });
 
-document.getElementById('generateDescBtnAi').addEventListener('click', async () => {
+document.getElementById('generateDescBtnAi')?.addEventListener('click', async () => {
     const title = document.getElementById('artworkTitle').value;
     const category = document.getElementById('category').value;
     const material = document.getElementById('materialUsed').value;
@@ -243,7 +298,6 @@ function handleFiles(files) {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
         
-        // Create preview for images
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -274,7 +328,6 @@ function removeFile(index) {
     handleFiles(selectedFiles);
 }
 
-// Form submission
 async function handleArtworkSubmit(event) {
     event.preventDefault();
     
@@ -289,7 +342,6 @@ async function handleArtworkSubmit(event) {
         return;
     }
     
-    // Create FormData
     const formData = new FormData();
     formData.append('title', title);
     formData.append('category', category);
@@ -297,12 +349,10 @@ async function handleArtworkSubmit(event) {
     formData.append('description', description);
     formData.append('price', price);
     
-    // Append files
     selectedFiles.forEach(file => {
         formData.append('files', file);
     });
     
-    // Show loading state
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Uploading...';
@@ -319,12 +369,10 @@ async function handleArtworkSubmit(event) {
         if (data.success) {
             alert('Artwork uploaded successfully!');
             
-            // Reset form
             document.getElementById('artworkForm').reset();
             filePreview.innerHTML = '';
             selectedFiles = [];
             
-            // Switch to "My Works" tab
             switchTab('works');
             loadMyArtworks();
         } else {
@@ -339,8 +387,8 @@ async function handleArtworkSubmit(event) {
     }
 }
 
-// Load user's artworks
 async function loadMyArtworks() {
+    console.log('Loading my artworks...');
     try {
         const response = await fetchWithXHR('/api/my-artworks');
         const data = await response.json();
@@ -355,6 +403,11 @@ async function loadMyArtworks() {
 
 function displayArtworks(artworks) {
     const worksGrid = document.querySelector('.works-grid');
+    
+    if (!worksGrid) {
+        console.error('Works grid not found!');
+        return;
+    }
     
     if (artworks.length === 0) {
         worksGrid.innerHTML = `
@@ -405,11 +458,9 @@ function displayArtworks(artworks) {
     `).join('');
 }
 
-
-
 function openQrCodeModal(artworkId) {
     const qrCodeContainer = document.getElementById('qrCodeContainer');
-    qrCodeContainer.innerHTML = ''; // Clear previous QR code
+    qrCodeContainer.innerHTML = '';
     const img = document.createElement('img');
     img.src = `/api/generate-qr/${artworkId}`;
     qrCodeContainer.appendChild(img);
@@ -421,7 +472,6 @@ function closeQrCodeModal() {
 }
 
 function viewProduct(productId) {
-    // You can implement a modal or redirect to product detail page
     window.location.href = `/product/${productId}`;
 }
 
@@ -449,41 +499,69 @@ async function deleteArtwork(artworkId) {
     }
 }
 
-// Tab switching
-document.querySelectorAll('.studio-tab').forEach(tab => {
-    tab.addEventListener('click', function () {
-        const tabName = this.dataset.tab;
-        switchTab(tabName);
-    });
-});
-
+// FIXED: Tab switching function
 function switchTab(tabName) {
-    document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-    document.getElementById(tabName + 'Tab').classList.add('active');
+    console.log('Switching to tab:', tabName);
     
+    // Save the active tab to localStorage
+    localStorage.setItem('activeStudioTab', tabName);
+    
+    // Remove active from all tabs
+    document.querySelectorAll('.studio-tab').forEach(t => {
+        t.classList.remove('active');
+    });
+    
+    // Remove active from all content
+    document.querySelectorAll('.tab-content').forEach(c => {
+        c.classList.remove('active');
+    });
+
+    // Add active to clicked tab
+    const clickedTab = document.querySelector(`[data-tab="${tabName}"]`);
+    if (clickedTab) {
+        clickedTab.classList.add('active');
+        console.log('Activated tab button:', tabName);
+    } else {
+        console.error('Tab button not found:', tabName);
+    }
+
+    // Add active to content
+    const contentId = tabName + 'Tab';
+    const content = document.getElementById(contentId);
+    
+    if (content) {
+        content.classList.add('active');
+        console.log('Activated tab content:', contentId);
+    } else {
+        console.error('Tab content not found:', contentId);
+    }
+    
+    // Load data for specific tabs
     if (tabName === 'works') {
         loadMyArtworks();
+    } else if (tabName === 'profile') {
+        loadProfileData();
     }
 }
 
-// Auth functions
+// Make switchTab globally available
+window.switchTab = switchTab;
+
 function disableStudioFeatures() {
     const form = document.getElementById('artworkForm');
     const inputs = form.querySelectorAll('input, textarea, select, button');
     const uploadArea = document.getElementById('uploadArea');
-    const logout  = document.getElementById('logout-button');
-
+    const logout = document.getElementById('logout-button');
 
     inputs.forEach(input => {
         input.disabled = true;
     });
 
-    uploadArea.style.opacity = '0.5';
-    uploadArea.style.cursor = 'not-allowed';
-    uploadArea.style.pointerEvents = 'none';
+    if (uploadArea) {
+        uploadArea.style.opacity = '0.5';
+        uploadArea.style.cursor = 'not-allowed';
+        uploadArea.style.pointerEvents = 'none';
+    }
 
     const formCard = document.querySelector('.form-card');
     const overlay = document.createElement('div');
@@ -504,7 +582,7 @@ function disableStudioFeatures() {
         </div>
     `;
 
-    logout.style.display = 'none';
+    if (logout) logout.style.display = 'none';
     formCard.style.position = 'relative';
     formCard.insertBefore(overlay, formCard.firstChild);
 }
@@ -519,9 +597,11 @@ function enableStudioFeatures() {
         input.disabled = false;
     });
 
-    uploadArea.style.opacity = '1';
-    uploadArea.style.cursor = 'pointer';
-    uploadArea.style.pointerEvents = 'auto';
+    if (uploadArea) {
+        uploadArea.style.opacity = '1';
+        uploadArea.style.cursor = 'pointer';
+        uploadArea.style.pointerEvents = 'auto';
+    }
 
     if (overlay) {
         overlay.remove();
@@ -600,3 +680,90 @@ async function handleSignup(event) {
         alert('An error occurred.');
     }
 }
+
+function generateProfileQr(artistName) {
+    const qrContainer = document.getElementById('profileQrContainer');
+    if (!qrContainer) return;
+    
+    qrContainer.innerHTML = '';
+
+    const img = document.createElement('img');
+    const artistUrl = `${window.location.origin}/artist/${encodeURIComponent(artistName)}`;
+    
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(artistUrl)}&bgcolor=F5F0E8&color=3E2723`;
+    img.alt = 'Artist Profile QR Code';
+    img.style.width = '250px';
+    img.style.height = '250px';
+    
+    qrContainer.appendChild(img);
+}
+
+function downloadProfileQr() {
+    const qrImg = document.querySelector('#profileQrContainer img');
+    if (!qrImg) {
+        alert('QR code not available');
+        return;
+    }
+
+    const link = document.createElement('a');
+    link.href = qrImg.src;
+    link.download = 'artist-profile-qr.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function goToMarketplace() {
+    const artistName = document.getElementById('profileName').textContent;
+    if (artistName && artistName !== 'Loading...') {
+        window.location.href = `/artist/${encodeURIComponent(artistName)}`;
+    } else {
+        alert('Profile not loaded yet');
+    }
+}
+
+async function loadProfileData() {
+    console.log('Loading profile data...');
+    try {
+        const authResponse = await fetchWithXHR('/api/check-auth');
+        const authData = await authResponse.json();
+
+        if (authData.logged_in && authData.user) {
+            const user = authData.user;
+            document.getElementById('profileName').textContent = user.name;
+            document.getElementById('profileEmail').textContent = user.email;
+
+            const artworksResponse = await fetchWithXHR('/api/my-artworks');
+            const artworksData = await artworksResponse.json();
+
+            if (artworksData.success) {
+                const artworks = artworksData.artworks;
+                const totalViews = artworks.reduce((sum, art) => sum + (art.views || 0), 0);
+                const totalLikes = artworks.reduce((sum, art) => sum + (art.likes || 0), 0);
+
+                document.getElementById('totalArtworks').textContent = artworks.length;
+                document.getElementById('totalViews').textContent = totalViews;
+                document.getElementById('totalLikes').textContent = totalLikes;
+            }
+
+            generateProfileQr(user.name);
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+    }
+}
+
+// Make functions globally available
+window.handleArtworkSubmit = handleArtworkSubmit;
+window.removeFile = removeFile;
+window.openQrCodeModal = openQrCodeModal;
+window.closeQrCodeModal = closeQrCodeModal;
+window.viewProduct = viewProduct;
+window.deleteArtwork = deleteArtwork;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.switchAuthTab = switchAuthTab;
+window.handleLogin = handleLogin;
+window.handleSignup = handleSignup;
+window.downloadProfileQr = downloadProfileQr;
+window.goToMarketplace = goToMarketplace;

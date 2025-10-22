@@ -51,24 +51,16 @@ def write_artworks(artworks):
     with open(ARTWORKS_FILE, 'w') as f:
         json.dump(artworks, f, indent=4)
 
-
 def generate(image_path, details_text):
     """
     Analyzes an image of an ornament and suggests a fair price.
     """
     try:
-        # Configure the API key from environment variables
-        api_key = "AIzaSyAlv3bdC2r3dAW7dL_5mZumkElQVXmN2Yk"
-        if not api_key:
-            print("Error: GOOGLE_API_KEY environment variable not set.")
-            return
-        genai.configure(api_key=api_key)
-
         # Load the image
         img = Image.open(image_path)
 
         # Initialize the generative model
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        model = genai.GenerativeModel('eeeew7eew7wwe7www777w')
 
         # Create the prompt
         prompt_parts = [
@@ -193,7 +185,8 @@ def get_product_details(product_id):
             'material': artwork['material'],
             'created_at': artwork['created_at'],
             'views': artwork.get('views', 0),
-            'likes': artwork.get('likes', 0)
+            'likes': artwork.get('likes', 0),
+            'feedback': artwork.get('feedback', [])
         }
         
         return jsonify(product), 200
@@ -508,7 +501,43 @@ def logout():
 @app.route('/product/<product_id>')
 def product_detail(product_id):
     """Render product detail page"""
-    return render_template('product_detail.html', product_id=product_id)    
+    return render_template('product_detail.html', product_id=product_id)
+
+@app.route('/submit_feedback/<product_id>', methods=['POST'])
+def submit_feedback(product_id):
+    feedback_text = request.form.get('feedback_text')
+
+    if not feedback_text:
+        return jsonify({'success': False, 'message': 'Feedback cannot be empty.'}), 400
+
+    artworks = read_artworks()
+    artwork_found = False
+    for artwork in artworks:
+        if artwork['id'] == product_id:
+            if 'feedback' not in artwork:
+                artwork['feedback'] = []
+            artwork['feedback'].append(feedback_text)
+            write_artworks(artworks)
+            artwork_found = True
+            break
+    
+    if artwork_found:
+        return redirect(url_for('product_detail', product_id=product_id))
+    else:
+        return jsonify({'success': False, 'message': 'Product not found.'}), 404
+
+@app.route('/artist/<artist_name>')
+def artist_arts(artist_name):
+    """Render page with all artworks by a specific artist"""
+    artworks = read_artworks()
+    users = read_users()
+    artist = next((u for u in users if u['name'] == artist_name), None)
+    if artist:
+        artist_email = artist['email']
+        artist_artworks = [art for art in artworks if art['user_email'] == artist_email and art.get('status') == 'published']
+    else:
+        artist_artworks = []
+    return render_template('artist_arts.html', artist_name=artist_name, artworks=artist_artworks)    
 
 @app.route('/api/suggest-price', methods=['POST'])
 @xhr_required
@@ -543,7 +572,7 @@ def suggest_price_route():
             Description: {description}
             """
             
-            price = generate(filepath, details_text)
+            price = generate(filepath, details_text)    
             
             os.remove(filepath)
 
@@ -554,6 +583,36 @@ def suggest_price_route():
     except Exception as e:
         print(f"Error suggesting price: {str(e)}")
         return jsonify({'success': False, 'message': 'An error occurred while suggesting price'}), 500
+
+
+@app.route('/api/generate-profile-qr/<artist_name>')
+def generate_profile_qr(artist_name):
+    try:
+        # Generate the URL for the artist's page
+        artist_url = url_for('artist_arts', artist_name=artist_name, _external=True)
+        
+        # Generate QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(artist_url)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="#3E2723", back_color="#F5F0E8")
+        
+        # Save QR code to a bytes buffer
+        buf = io.BytesIO()
+        img.save(buf)
+        buf.seek(0)
+        
+        return send_file(buf, mimetype='image/png')
+
+    except Exception as e:
+        print(f"Error generating profile QR code: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred while generating QR code'}), 500
 
 @app.route('/api/generate-qr/<artwork_id>')
 def generate_qr_route(artwork_id):
@@ -650,12 +709,6 @@ def generate_description(image_path, title, category, material, existing_descrip
     Generates a description for an artwork using AI.
     """
     try:
-        api_key = "AIzaSyAlv3bdC2r3dAW7dL_5mZumkElQVXmN2Yk"
-        if not api_key:
-            print("Error: GOOGLE_API_KEY environment variable not set.")
-            return "API key not configured."
-        genai.configure(api_key=api_key)
-
         img = Image.open(image_path)
         model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
@@ -698,13 +751,6 @@ def correct_and_translate_text(text_to_correct):
     Corrects spelling and translates text to English using Gemini AI.
     """
     try:
-        # Configure the API key
-        api_key = "AIzaSyAlv3bdC2r3dAW7dL_5mZumkElQVXmN2Yk"
-        if not api_key:
-            print("Error: GOOGLE_API_KEY environment variable not set.")
-            return text_to_correct # Return original text if API key is not set
-        genai.configure(api_key=api_key)
-
         # Initialize the generative model
         model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
@@ -755,5 +801,9 @@ def generate_description_route():
         print(f"Error in generate-description route: {str(e)}")
         return jsonify({'success': False, 'message': 'An error occurred while generating the description'}), 500
 
+
+
+
+    
 if __name__ == "__main__":
     app.run(debug=True)
