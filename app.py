@@ -34,6 +34,9 @@ ARTWORKS_FILE = 'data/artworks.json'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('data', exist_ok=True)
 
+# NOTE: The model names are set to 'gemini-2.5-flash-preview-09-2025'
+my_api_key = 'AIzaSyAlv3bdC2r3dAW7dL_5mZumkElQVXmN2Yk'
+genai.configure(api_key=my_api_key)
 
 
 def allowed_file(filename):
@@ -56,33 +59,43 @@ def generate(image_path, details_text):
     Analyzes an image of an ornament and suggests a fair price.
     """
     try:
-        # Load the image
-        img = Image.open(image_path)
+        # Using the correct, multimodal model name
+        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
 
-        # Initialize the generative model
-        model = genai.GenerativeModel('eeeew7eew7wwe7www777w')
+        # FIX: Use 'with' statement to ensure the image file is closed immediately (fixes WinError 32)
+        with Image.open(image_path) as img:
+            
+            # Create the prompt
+            prompt_parts = [
+                details_text,
+                img,
+                "\n\nSee the image and details, and suggest a fair price for the ornament based on recent Indian market trends, satisfying both the maker and supplier. dont ask any follow up questions. and just the price nothing else or any other text. The price should be in INR and rather than a range it should be a single value.The price should match the city trends and no price should be less than 1000 INR and go upto tens of thousands."
+            ]
 
-        # Create the prompt
-        prompt_parts = [
-            details_text,
-            img,
-            "\n\nSee the image and details, and suggest a fair price for the ornament based on recent Indian market trends, satisfying both the maker and supplier. dont ask any follow up questions. and just the price nothing else or any other text. The price should be in INR and rather than a range it should be a single value.The price should match the city trends and no price should be less than 1000 INR and go upto lakhs."
-        ]
+            # Generate content and stream the response
+            response = model.generate_content(prompt_parts, stream=True)
 
-        # Generate content and stream the response
-        response = model.generate_content(prompt_parts, stream=True)
-
-        generated_price = ""
-        for chunk in response:
-            generated_price += chunk.text
-        
-        return generated_price.strip()
+            generated_price = ""
+            for chunk in response:
+                generated_price += chunk.text
+            
+            return generated_price.strip()
 
     except FileNotFoundError:
         print(f"Error: The file was not found at {image_path}")
     except Exception as e:
         print(f"An error occurred: {e}")
+    return "0" # Return a default price on failure
 
+def read_users():
+    if not os.path.exists(DATA_FILE):
+        return []
+    with open(DATA_FILE, 'r') as f:
+        return json.load(f)
+
+def save_users(users):
+    with open(DATA_FILE, 'w') as f:
+        json.dump(users, f, indent=4)
 
 
 @app.route("/")
@@ -223,8 +236,6 @@ def like_product(product_id):
         return jsonify({'error': 'Failed to like product'}), 500
 
 
-
-
 @app.route("/community")
 def community():
     return render_template("community.html")
@@ -236,16 +247,6 @@ def contact():
 @app.route("/join")
 def join():
     return render_template("join.html")
-
-def read_users():
-    if not os.path.exists(DATA_FILE):
-        return []
-    with open(DATA_FILE, 'r') as f:
-        return json.load(f)
-
-def save_users(users):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(users, f, indent=4)
 
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -323,6 +324,8 @@ def upload_artwork():
         
         # Handle file uploads
         uploaded_files = []
+        filepath = None # Initialize filepath for potential price generation
+        
         if 'files' in request.files:
             files = request.files.getlist('files')
             
@@ -336,13 +339,16 @@ def upload_artwork():
                     unique_filename = f"{timestamp}_{filename}"
                     
                     # Save file
-                    filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
-                    file.save(filepath)
+                    filepath_temp = os.path.join(UPLOAD_FOLDER, unique_filename)
+                    file.save(filepath_temp)
+                    
+                    if not filepath:
+                        filepath = filepath_temp # Keep the first file path for price generation
                     
                     # Store relative path for web access
                     uploaded_files.append(f'uploads/artworks/{unique_filename}')
         
-        if not uploaded_files:
+        if not uploaded_files or not filepath:
             return jsonify({'success': False, 'message': 'At least one file is required'}), 400
         
         # Create artwork object
@@ -352,7 +358,10 @@ def upload_artwork():
         Material: {material}
         Description: {description}
         """
+        
+        # If no price is provided, generate it using the first uploaded image
         if not price:
+            # The generate function uses 'with Image.open()' to avoid file locking
             generated_price = generate(filepath, details_text)
             price = generated_price
 
@@ -363,7 +372,7 @@ def upload_artwork():
             'category': corrected_category,
             'material': material,
             'description': description,
-            'price': float(price) if price else None,
+            'price': float(price) if price and price.replace('INR', '').strip().replace(',', '').isdigit() else None,
             'files': uploaded_files,
             'created_at': datetime.now().isoformat(),
             'status': 'published',
@@ -545,6 +554,7 @@ def suggest_price_route():
     if 'user_email' not in session:
         return jsonify({'success': False, 'message': 'Please login first'}), 401
     
+    filepath = None # Initialize filepath outside try block for cleanup
     try:
         title = request.form.get('title')
         category = request.form.get('category')
@@ -562,7 +572,9 @@ def suggest_price_route():
             return jsonify({'success': False, 'message': 'No selected file'}), 400
 
         if file and allowed_file(file.filename):
-            filepath = os.path.join(UPLOAD_FOLDER, secure_filename(file.filename))
+            # Create a unique temporary path to avoid file conflicts
+            unique_filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{secure_filename(file.filename)}"
+            filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
             file.save(filepath)
             
             details_text = f"""
@@ -572,8 +584,10 @@ def suggest_price_route():
             Description: {description}
             """
             
+            # The generate function now properly closes the file handle (Fixes WinError 32)
             price = generate(filepath, details_text)    
             
+            # Clean up the temporary file after generation
             os.remove(filepath)
 
             return jsonify({'success': True, 'price': price})
@@ -582,6 +596,12 @@ def suggest_price_route():
 
     except Exception as e:
         print(f"Error suggesting price: {str(e)}")
+        # If an error occurs, try to clean up the file if it exists
+        if filepath and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception as clean_e:
+                print(f"Error cleaning up file: {clean_e}")
         return jsonify({'success': False, 'message': 'An error occurred while suggesting price'}), 500
 
 
@@ -657,7 +677,7 @@ def ai_search():
     # Simulate AI-powered search with weighted scoring
     search_results = []
     for artwork in artworks:
-        if artwork.get('status') != 'publ       ished':
+        if artwork.get('status') != 'published':
             continue
 
         score = 0
@@ -709,38 +729,40 @@ def generate_description(image_path, title, category, material, existing_descrip
     Generates a description for an artwork using AI.
     """
     try:
-        img = Image.open(image_path)
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        # Using the correct, multimodal model name
+        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
 
-        if existing_description:
-            prompt = f"""
-            Enhance the following description for an artwork with the given details.
-            Make it more evocative and appealing to potential buyers.
-            Keep it concise and under 100 words.
+        # FIX: Use 'with' statement to ensure the image file is closed immediately (fixes WinError 32)
+        with Image.open(image_path) as img:
+            if existing_description:
+                prompt = f"""
+                Enhance the following description for an artwork with the given details.
+                Make it more evocative and appealing to potential buyers.
+                Keep it concise and under 100 words.
 
-            Title: {title}
-            Category: {category}
-            Material: {material}
-            Existing Description: {existing_description}
+                Title: {title}
+                Category: {category}
+                Material: {material}
+                Existing Description: {existing_description}
 
-            Enhanced Description:
-            """
-        else:
-            prompt = f"""
-            Write a compelling and brief description (under 80 words) for the following artwork.
-            Focus on the visual elements, the craftsmanship, and the potential story behind the piece.
-            The description should entice potential buyers and art enthusiasts. 
-            The discription is for an ecommerce website made for tradition handicraft artisans and buyers so make the discription according to it only.
+                Enhanced Description:
+                """
+            else:
+                prompt = f"""
+                Write a compelling and brief description (under 80 words) for the following artwork.
+                Focus on the visual elements, the craftsmanship, and the potential story behind the piece.
+                The description should entice potential buyers and art enthusiasts. 
+                The discription is for an ecommerce website made for tradition handicraft artisans and buyers so make the discription according to it only.
 
-            Title: {title}
-            Category: {category}
-            Material: {material}
+                Title: {title}
+                Category: {category}
+                Material: {material}
 
-            Description:
-            """
+                Description:
+                """
 
-        response = model.generate_content([prompt, img])
-        return response.text.strip()
+            response = model.generate_content([prompt, img])
+            return response.text.strip()
 
     except Exception as e:
         print(f"An error occurred during description generation: {e}")
@@ -751,8 +773,8 @@ def correct_and_translate_text(text_to_correct):
     Corrects spelling and translates text to English using Gemini AI.
     """
     try:
-        # Initialize the generative model
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        # Using the correct model name
+        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
 
         # Create the prompt
         prompt = f"Correct the spelling of the following text. If the text is not in English, translate it to English. Do not add any extra information or change the meaning. Just provide the corrected and translated text. The text is: '{text_to_correct}'"
@@ -772,6 +794,7 @@ def generate_description_route():
     if 'user_email' not in session:
         return jsonify({'success': False, 'message': 'Please login first'}), 401
 
+    filepath = None # Initialize filepath outside try block for cleanup
     try:
         title = request.form.get('title')
         category = request.form.get('category')
@@ -786,11 +809,15 @@ def generate_description_route():
             return jsonify({'success': False, 'message': 'No selected file'}), 400
 
         if file and allowed_file(file.filename):
-            filepath = os.path.join(UPLOAD_FOLDER, secure_filename(file.filename))
+            # Create a unique temporary path to avoid file conflicts
+            unique_filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{secure_filename(file.filename)}"
+            filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
             file.save(filepath)
 
+            # The generate_description function now properly closes the file handle (Fixes WinError 32)
             description = generate_description(filepath, title, category, material, existing_description)
 
+            # Clean up the temporary file after generation
             os.remove(filepath)
 
             return jsonify({'success': True, 'description': description})
@@ -799,9 +826,13 @@ def generate_description_route():
 
     except Exception as e:
         print(f"Error in generate-description route: {str(e)}")
+        # If an error occurs, try to clean up the file if it exists
+        if filepath and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception as clean_e:
+                print(f"Error cleaning up file: {clean_e}")
         return jsonify({'success': False, 'message': 'An error occurred while generating the description'}), 500
-
-
 
 
     
