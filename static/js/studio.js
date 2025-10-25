@@ -131,7 +131,52 @@ document.getElementById('suggestPriceBtn')?.addEventListener('click', async () =
         alert('An error occurred while suggesting the price.');
     } finally {
         suggestBtn.disabled = false;
-        suggestBtn.innerHTML = '<div class="tool-content"><span class="tool-name">Suggest Fair Price</span><span class="tool-desc">Market-based pricing</span></div><span class="tool-arrow">→</span>';
+            generateBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span> Generate';
+        }
+    });
+
+
+document.getElementById('suggestPriceBtnForm')?.addEventListener('click', async () => {
+    const title = document.getElementById('artworkTitle').value;
+    const category = document.getElementById('category').value;
+    const material = document.getElementById('materialUsed').value;
+    const description = document.getElementById('description').value;
+
+    if (!selectedFiles[0]) {
+        alert('Please select an image first.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('material', material);
+    formData.append('description', description);
+    formData.append('file', selectedFiles[0]);
+
+    const suggestBtnform = document.getElementById('suggestPriceBtnForm');
+    suggestBtnform.disabled = true;
+    suggestBtnform.innerHTML = 'Suggesting...';
+
+    try {
+        const response = await fetchWithXHR('/api/suggest-price', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('price').value = data.price.replace(/[^0-9.]/g, '');
+        } else {
+            alert('Failed to suggest price: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error suggesting price:', error);
+        alert('An error occurred while suggesting the price.');
+    } finally {
+        suggestBtnform.disabled = false;
+        suggestBtnform.textContent = 'Fair Price Suggested';
     }
 });
 
@@ -179,7 +224,7 @@ async function generateDescription() {
             reject(error);
         } finally {
             generateBtn.disabled = false;
-            generateBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span> Generate';
+            generateBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span> Description Generated';
         }
     });
 }
@@ -629,17 +674,24 @@ async function handleLogin(event) {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const next = urlParams.get('next');
+
     try {
         const response = await fetchWithXHR('/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password, next })
         });
         const data = await response.json();
 
         if (data.success) {
             closeAuthModal();
-            location.reload();
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                location.reload();
+            }
         } else {
             alert('Login failed: ' + data.message);
         }

@@ -238,7 +238,66 @@ def like_product(product_id):
 
 @app.route("/community")
 def community():
+    if 'user_email' not in session:
+        return redirect(url_for('studio', next='community'))
     return render_template("community.html")
+
+
+@app.route('/api/community/posts', methods=['GET', 'POST'])
+def handle_community_posts():
+    COMMUNITY_POSTS_FILE = 'data/community_posts.json'
+    COMMUNITY_UPLOAD_FOLDER = 'static/uploads/community'
+    os.makedirs(COMMUNITY_UPLOAD_FOLDER, exist_ok=True)
+
+    if request.method == 'GET':
+        if os.path.exists(COMMUNITY_POSTS_FILE):
+            with open(COMMUNITY_POSTS_FILE, 'r') as f:
+                posts = json.load(f)
+            users = read_users()
+            for post in posts:
+                user = next((u for u in users if u['email'] == post['user_email']), None)
+                post['artist_name'] = user['name'] if user else 'Anonymous Artisan'
+            return jsonify(posts)
+        return jsonify([])
+
+    if request.method == 'POST':
+        if 'user_email' not in session:
+            return jsonify({'success': False, 'message': 'Please login first'}), 401
+
+        description = request.form.get('description')
+        if not description:
+            return jsonify({'success': False, 'message': 'Description is required'}), 400
+
+        image_path = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"{timestamp}_{filename}"
+                image_path = os.path.join(COMMUNITY_UPLOAD_FOLDER, unique_filename)
+                file.save(image_path)
+                image_path = image_path.replace('\\', '/') # Normalize path for web
+
+        new_post = {
+            'id': datetime.now().strftime('%Y%m%d%H%M%S%f'),
+            'user_email': session['user_email'],
+            'description': description,
+            'image': image_path,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        posts = []
+        if os.path.exists(COMMUNITY_POSTS_FILE):
+            with open(COMMUNITY_POSTS_FILE, 'r') as f:
+                posts = json.load(f)
+        
+        posts.insert(0, new_post) # Add new post to the beginning
+
+        with open(COMMUNITY_POSTS_FILE, 'w') as f:
+            json.dump(posts, f, indent=4)
+
+        return jsonify({'success': True, 'message': 'Post created successfully'}), 201
 
 @app.route("/contact")
 def contact():
@@ -292,6 +351,9 @@ def login():
             hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
             if hashed_password == stored_password_hash:
                 session['user_email'] = email
+                next_url = request.json.get('next')
+                if next_url == 'community':
+                    return jsonify({'success': True, 'message': 'Login successful', 'redirect': url_for('community')})
                 return jsonify({'success': True, 'message': 'Login successful'})
 
     return jsonify({'success': False, 'message': 'Invalid email or password'})

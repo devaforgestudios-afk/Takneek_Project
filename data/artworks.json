@@ -12,8 +12,11 @@
         ],
         "created_at": "2025-10-15T17:17:05.213425",
         "status": "published",
-        "views": 39,
-        "likes": 0
+        "views": 45,
+        "likes": 0,
+        "feedback": [
+            "dq"
+        ]
     },
     {
         "id": "20251016133908582176",
@@ -47,7 +50,7 @@
         ],
         "created_at": "2025-10-16T14:31:12.359902",
         "status": "published",
-        "views": 12,
+        "views": 13,
         "likes": 0
     },
     {
@@ -79,7 +82,7 @@
         ],
         "created_at": "2025-10-16T21:40:16.843999",
         "status": "published",
-        "views": 2,
+        "views": 3,
         "likes": 0
     }
 ]
