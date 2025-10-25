@@ -11,7 +11,7 @@
 
 <div class="container">
     <a href="/marketplace" class="back-button" style="margin-bottom: 2rem; margin-left: 100px; display: inline-block; background: linear-gradient(135deg, #3E2723 0%, #2c1b17 100%); color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(62, 39, 35, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); transition: all 0.3s ease;">
-        <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">arrow_back</span>
+        <span class="material-symbols-outlined notranslate" style="vertical-align: middle; margin-right: 8px;">arrow_back</span>
         Back to Marketplace
     </a>
     <div class="product-count">Showing {{ artworks|length }} products</div>
@@ -46,11 +46,11 @@
                     </div>
                     <div class="product-stats">
                         <div class="stat-item">
-                            <span class="material-symbols-outlined">visibility</span>
+                            <span class="material-symbols-outlined notranslate">visibility</span>
                             <span>{{ product.views or 0 }}</span>
                         </div>
                         <div class="stat-item">
-                            <span class="material-symbols-outlined">favorite</span>
+                            <span class="material-symbols-outlined notranslate">favorite</span>
                             <span>{{ product.likes or 0 }}</span>
                         </div>
                     </div>
@@ -62,7 +62,7 @@
             {% endfor %}
         {% else %}
             <div class="empty-state">
-                <span class="material-symbols-outlined">search_off</span>
+                <span class="material-symbols-outlined notranslate">search_off</span>
                 <h3>No products found</h3>
                 <p>This artist has not published any artworks yet.</p>
             </div>

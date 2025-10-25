@@ -47,7 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (onPostSuccessCallback) {
                         onPostSuccessCallback();
                     }
-                } else {
+                } else if (response.status === 401) {
+                    window.location.href = '/studio?next=community';
+                }
+                else {
                     alert('Failed to create post. Please try again.');
                 }
             } catch (error) {

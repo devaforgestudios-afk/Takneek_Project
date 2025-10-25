@@ -30,7 +30,7 @@
                 <button class="studio-tab" data-tab="profile">Profile</button>
                 <button class="studio-tab" data-tab="posts">My Posts</button>
                 <a href="/logout" class="studio-tab" id="logout-button">
-                    <span class="material-symbols-outlined">logout</span>
+                    <span class="material-symbols-outlined notranslate">logout</span>
                     Logout
                 </a>
 
@@ -75,7 +75,7 @@
                                         <label for="description">Description / Story</label>
                                         <button type="button" id="generateDescBtn" class="btn-secondary"
                                             style="padding: 5px 10px; font-size: 12px; margin-left: 10px; margin-bottom: 5px;">
-                                            <span class="material-symbols-outlined"
+                                            <span class="material-symbols-outlined notranslate"
                                                 style="font-size: 16px;">auto_awesome</span>
                                             Generate Description
                                         </button>
@@ -89,7 +89,7 @@
                                         <label for="price">Price (₹) - Optional</label>
                                         <button type="button" id="suggestPriceBtnForm" class="btn-secondary"
                                             style="padding: 5px 10px; font-size: 12px; margin-left: 10px; margin-bottom: 5px;">
-                                            <span class="material-symbols-outlined"
+                                            <span class="material-symbols-outlined notranslate"
                                                 style="font-size: 16px;">auto_stories</span>
                                             Suggest Fair Price
                                         </button>                                    </div>
@@ -100,7 +100,7 @@
                                 <div class="form-group">
                                     <label>Upload Media</label>
                                     <div class="upload-area" id="uploadArea">
-                                        <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+                                        <span class="material-symbols-outlined notranslate upload-icon">cloud_upload</span>
                                         <p class="upload-text">Drag and drop your files here, or click to browse</p>
                                         <p class="upload-hint">Supports Images, Videos, PDFs</p>
                                         <input type="file" id="fileInput" accept="image/*,video/*,.pdf" multiple hidden>
@@ -158,7 +158,7 @@
                         <div class="profile-card">
                             <div class="profile-header">
                                 <div class="profile-avatar">
-                                    <span class="material-symbols-outlined">account_circle</span>
+                                    <span class="material-symbols-outlined notranslate">account_circle</span>
                                 </div>
                                 <div class="profile-info">
                                     <h2 class="profile-name" id="profileName">Loading...</h2>
@@ -182,7 +182,7 @@
                         </div>
                         <div class="profile-actions">
                             <button class="btn-marketplace btn-dark-marketplace" onclick="goToMarketplace()">
-                                <span class="material-symbols-outlined">storefront</span>
+                                <span class="material-symbols-outlined notranslate">storefront</span>
                                 Go to Your Marketplace
                             </button>
                         </div>
@@ -193,12 +193,12 @@
                             <p class="section-subtitle">Share this QR code to let others discover your artwork collection</p>
                             <div class="qr-display" id="profileQrContainer">
                                 <div class="qr-loading">
-                                    <span class="material-symbols-outlined">hourglass_empty</span>
+                                    <span class="material-symbols-outlined notranslate">hourglass_empty</span>
                                     <p>Generating QR Code...</p>
                                 </div>
                             </div>
                             <button class="btn-primary" onclick="downloadProfileQr()">
-                                <span class="material-symbols-outlined">download</span>
+                                <span class="material-symbols-outlined notranslate">download</span>
                                 Download QR Code
                             </button>
                         </div>
@@ -211,7 +211,7 @@
             <div id="worksTab" class="tab-content">
                 <div class="works-grid">
                     <div class="empty-state">
-                        <span class="material-symbols-outlined empty-icon">inventory_2</span>
+                        <span class="material-symbols-outlined notranslate empty-icon">inventory_2</span>
                         <h3>No artworks yet</h3>
                         <p>Start by uploading your first creation</p>
                         <button class="btn-primary" onclick="switchTab('upload')">Upload Artwork</button>
@@ -224,7 +224,7 @@
                 <div class="posts-header">
                     <h2 class="card-title">My Community Posts</h2>
                     <button class="create-post-btn" id="createPostStudioBtn" style="margin-bottom: 20px;">
-                        <span class="material-symbols-outlined" >add</span>
+                        <span class="material-symbols-outlined notranslate" >add</span>
                         Create Post
                     </button>
                     <div class="sort-container">
@@ -285,7 +285,7 @@
                 <div class="form-group">
                     <label for="loginEmail">Email Address</label>
                     <div class="input-wrapper">
-                        <span class="material-symbols-outlined input-icon">email</span>
+                        <span class="material-symbols-outlined notranslate input-icon">email</span>
                         <input type="email" id="loginEmail" placeholder="artisan@example.com" required>
                     </div>
                 </div>
@@ -293,7 +293,7 @@
                 <div class="form-group">
                     <label for="loginPassword">Password</label>
                     <div class="input-wrapper">
-                        <span class="material-symbols-outlined input-icon">lock</span>
+                        <span class="material-symbols-outlined notranslate input-icon">lock</span>
                         <input type="password" id="loginPassword" placeholder="••••••••" required>
                     </div>
                 </div>
@@ -307,7 +307,7 @@
                 </div>
 
                 <button type="submit" class="submit-btn">
-                    <span class="material-symbols-outlined">login</span>
+                    <span class="material-symbols-outlined notranslate">login</span>
                     Login to Studio
                 </button>
             </form>
@@ -330,7 +330,7 @@
                 <div class="form-group">
                     <label for="signupName">Full Name</label>
                     <div class="input-wrapper">
-                        <span class="material-symbols-outlined input-icon">person</span>
+                        <span class="material-symbols-outlined notranslate input-icon">person</span>
                         <input type="text" id="signupName" placeholder="Your full name" required>
                     </div>
                 </div>
@@ -338,7 +338,7 @@
                 <div class="form-group">
                     <label for="signupEmail">Email Address</label>
                     <div class="input-wrapper">
-                        <span class="material-symbols-outlined input-icon">email</span>
+                        <span class="material-symbols-outlined notranslate input-icon">email</span>
                         <input type="email" id="signupEmail" placeholder="artisan@example.com" required>
                     </div>
                 </div>
@@ -346,7 +346,7 @@
                 <div class="form-group">
                     <label for="signupPassword">Password</label>
                     <div class="input-wrapper">
-                        <span class="material-symbols-outlined input-icon">lock</span>
+                        <span class="material-symbols-outlined notranslate input-icon">lock</span>
                         <input type="password" id="signupPassword" placeholder="At least 8 characters" required>
                     </div>
                 </div>
@@ -354,7 +354,7 @@
                 <div class="form-group">
                     <label for="signupConfirmPassword">Confirm Password</label>
                     <div class="input-wrapper">
-                        <span class="material-symbols-outlined input-icon">lock</span>
+                        <span class="material-symbols-outlined notranslate input-icon">lock</span>
                         <input type="password" id="signupConfirmPassword" placeholder="Confirm your password" required>
                     </div>
                 </div>
@@ -365,7 +365,7 @@
                 </label>
 
                 <button type="submit" class="submit-btn">
-                    <span class="material-symbols-outlined">person_add</span>
+                    <span class="material-symbols-outlined notranslate">person_add</span>
                     Create Account
                 </button>
             </form>

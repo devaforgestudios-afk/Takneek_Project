@@ -23,7 +23,7 @@
 <div class="container">
     <!-- Filter Bar -->
 <div class="filter-bar">
-    <span class="material-symbols-outlined filter-icon">tune</span>
+    <span class="material-symbols-outlined notranslate filter-icon">tune</span>
     <button class="filter-btn active" data-category="all">All</button>
     <button class="filter-btn" data-category="painting">Painting</button>
     <button class="filter-btn" data-category="pottery">Pottery</button>
@@ -78,7 +78,7 @@ async function fetchProducts() {
         console.error('Error fetching products:', error);
         document.getElementById('productsContainer').innerHTML = 
             `<div class="empty-state">
-                <span class="material-symbols-outlined">error</span>
+                <span class="material-symbols-outlined notranslate">error</span>
                 <h3>Failed to load products</h3>
                 <p>Please try again later</p>
             </div>`;
@@ -93,7 +93,7 @@ function displayProducts() {
     if (filteredProducts.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <span class="material-symbols-outlined">search_off</span>
+                <span class="material-symbols-outlined notranslate">search_off</span>
                 <h3>No products found</h3>
                 <p>Try adjusting your filters or search query</p>
             </div>`;
@@ -127,7 +127,7 @@ function displayProducts() {
                     <span class="product-material">${product.material}</span>
                 </div>
                 <div class="product-location">
-                    <span class="material-symbols-outlined">location_on</span>
+                    <span class="material-symbols-outlined notranslate">location_on</span>
                     <span>${product.location}</span>
                 </div>
                 <div class="product-description-preview">
@@ -135,15 +135,15 @@ function displayProducts() {
                 </div>
                 <div class="product-stats">
                     <div class="stat-item">
-                        <span class="material-symbols-outlined">visibility</span>
+                        <span class="material-symbols-outlined notranslate">visibility</span>
                         <span>${product.views || 0}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="material-symbols-outlined">favorite</span>
+                        <span class="material-symbols-outlined notranslate">favorite</span>
                         <span>${product.likes || 0}</span>
                     </div>
                     <div class="rating-stars">
-                        <span class="material-symbols-outlined rating-star">star</span>
+                        <span class="material-symbols-outlined notranslate rating-star">star</span>
                         <span class="rating-value">${product.rating}</span>
                     </div>
                 </div>

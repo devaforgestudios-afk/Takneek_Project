@@ -608,7 +608,7 @@
 
 <div class="container">
     <a href="/marketplace" class="back-button">
-        <span class="material-symbols-outlined">arrow_back</span>
+        <span class="material-symbols-outlined notranslate">arrow_back</span>
         Back to Marketplace
     </a>
 
@@ -651,11 +651,11 @@
             console.error('Error loading product:', error);
             document.getElementById('productContent').innerHTML = `
                 <div class="empty-state">
-                    <span class="material-symbols-outlined">error</span>
+                    <span class="material-symbols-outlined notranslate">error</span>
                     <h3>Product Not Found</h3>
                     <p>The product you're looking for doesn't exist or has been removed.</p>
                     <a href="/marketplace" class="btn-primary" style="display: inline-flex; margin-top: 2rem; text-decoration: none;">
-                        <span class="material-symbols-outlined">arrow_back</span>
+                        <span class="material-symbols-outlined notranslate">arrow_back</span>
                         Back to Marketplace
                     </a>
                 </div>
@@ -670,7 +670,7 @@
             <div class="product-container">
                 <div class="gallery-section">
                     <div class="main-image-wrapper">
-                        ${product.authentic ? '<div class="badge-authentic"><span class="material-symbols-outlined">verified</span> Authentic</div>' : ''}
+                        ${product.authentic ? '<div class="badge-authentic"><span class="material-symbols-outlined notranslate">verified</span> Authentic</div>' : ''}
                         <img id="mainImage" class="main-image" src="${product.images[0]}" alt="${product.name}">
                     </div>
                     ${product.images.length > 1 ? `
@@ -688,9 +688,9 @@
                     <h1 class="product-title">${product.name}</h1>
                     
                     <div class="artist-badge">
-                        <span class="material-symbols-outlined">person</span>
+                        <span class="material-symbols-outlined notranslate">person</span>
                         <span>by ${product.artist}</span>
-                        <span class="material-symbols-outlined">location_on</span>
+                        <span class="material-symbols-outlined notranslate">location_on</span>
                         <span>${product.location}</span>
                     </div>
 
@@ -706,42 +706,42 @@
 
                     <div class="stats-row">
                         <div class="stat-item">
-                            <span class="material-symbols-outlined">visibility</span>
+                            <span class="material-symbols-outlined notranslate">visibility</span>
                             <span>${product.views} views</span>
                         </div>
                         <div class="stat-item">
-                            <span class="material-symbols-outlined">favorite</span>
+                            <span class="material-symbols-outlined notranslate">favorite</span>
                             <span>${product.likes} likes</span>
                         </div>
                         <div class="stat-item">
-                            <span class="material-symbols-outlined">star</span>
+                            <span class="material-symbols-outlined notranslate">star</span>
                             <span>${product.rating} rating</span>
                         </div>
                     </div>
 
                     <div class="description-box">
-                        <h3><span class="material-symbols-outlined">description</span> About this artwork</h3>
+                        <h3><span class="material-symbols-outlined notranslate">description</span> About this artwork</h3>
                         <p>${product.description}</p>
                     </div>
 
                     <div class="description-box">
-                        <h3><span class="material-symbols-outlined">palette</span> Materials Used</h3>
+                        <h3><span class="material-symbols-outlined notranslate">palette</span> Materials Used</h3>
                         <p>${product.material}</p>
                     </div>
 
                     <div class="action-buttons">
                         <button class="btn-primary" onclick="buyProduct()">
-                            <span class="material-symbols-outlined">shopping_cart</span>
+                            <span class="material-symbols-outlined notranslate">shopping_cart</span>
                             ${product.price > 0 ? `Buy Now - ₹${product.price.toLocaleString()}` : 'Contact Artist'}
                         </button>
                         
                         <div class="secondary-actions">
                             <button class="btn-secondary" onclick="viewArtistArts('${product.artist}')">
-                                <span class="material-symbols-outlined">palette</span>
+                                <span class="material-symbols-outlined notranslate">palette</span>
                                 View Artist's Arts
                             </button>
                             <button class="btn-secondary" onclick="openShareModal()">
-                                <span class="material-symbols-outlined">share</span>
+                                <span class="material-symbols-outlined notranslate">share</span>
                                 Share
                             </button>
                         </div>

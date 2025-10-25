@@ -7,13 +7,138 @@ import google.generativeai as genai
 from PIL import Image
 import hashlib
 from functools import wraps
-
-
 import qrcode
 import io
+import mysql.connector
+from mysql.connector import Error, pooling
+from contextlib import contextmanager
+import threading
+from concurrent.futures import ThreadPoolExecutor
+import time
+import configparser
+import sys
+import colorama
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  
+app.secret_key = "supersecretkey"
+
+# Configuration file path
+CONFIG_FILE = 'config.ini'
+
+def create_default_config():
+    """Create a default config.ini file if it doesn't exist"""
+    config = configparser.ConfigParser()
+    config['DATABASE'] = {
+        'host': 'localhost',
+        'user': '',
+        'password': '',
+        'database': 'takneev5'
+    }
+    config['API'] = {
+        'gemini_api_key': ''
+    }
+    
+    with open(CONFIG_FILE, 'w') as configfile:
+        config.write(configfile)
+    
+    print(f"\n{'='*60}")
+    print(f"CONFIGURATION FILE CREATED: {CONFIG_FILE}")
+    print(f"{'='*60}")
+    print("\nPlease edit the config.ini file and add the following:")
+    print("\n[DATABASE]")
+    print("  - user: Your MySQL username (e.g., root)")
+    print("  - password: Your MySQL password")
+    print("  - host: MySQL server host (default: localhost)")
+    print("  - database: Database name (default: takneev5)")
+    print("\n[API]")
+    print("  - gemini_api_key: Your Google Gemini API key")
+    print(f"\n{'='*60}")
+    print("After editing config.ini, restart the application.")
+    print(f"{'='*60}\n")
+    sys.exit(1)
+
+def load_config():
+    """Load configuration from config.ini file"""
+    if not os.path.exists(CONFIG_FILE):
+        print(f"Configuration file '{CONFIG_FILE}' not found.")
+        create_default_config()
+    
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+    
+    # Validate database configuration
+    if not config.has_section('DATABASE'):
+        print("ERROR: [DATABASE] section missing in config.ini")
+        sys.exit(1)
+    
+    db_user = config.get('DATABASE', 'user', fallback='').strip()
+    db_password = config.get('DATABASE', 'password', fallback='').strip()
+    
+    if not db_user:
+        print("\nERROR: Database user is not configured in config.ini")
+        print("Please edit config.ini and set the 'user' value under [DATABASE]")
+        sys.exit(1)
+    
+    # Validate API configuration
+    if not config.has_section('API'):
+        print("ERROR: [API] section missing in config.ini")
+        sys.exit(1)
+    
+    api_key = config.get('API', 'gemini_api_key', fallback='').strip()
+    if not api_key:
+        print("\nWARNING: Gemini API key is not configured in config.ini")
+    
+    return config
+
+# Load configuration
+config = load_config()
+
+# Database configuration from config.ini
+DB_CONFIG = {
+    'host': config.get('DATABASE', 'host', fallback='localhost'),
+    'user': config.get('DATABASE', 'user'),
+    'password': config.get('DATABASE', 'password'),
+    'database': config.get('DATABASE', 'database', fallback='takneev5')
+}
+
+# Try to create connection pool
+try:
+    connection_pool = pooling.MySQLConnectionPool(
+        pool_name="mypool",
+        pool_size=10,
+        pool_reset_session=True,
+        **DB_CONFIG
+    )
+    print(colorama.Fore.LIGHTGREEN_EX + f"\n✓ Successfully connected to MySQL database: {DB_CONFIG['database']}" + colorama.Style.RESET_ALL)
+except Error as e:
+    print(colorama.Fore.RED + f"\nERROR: Could not connect to MySQL database: {e}" + colorama.Style.RESET_ALL)
+
+# Thread pool for async operations
+executor = ThreadPoolExecutor(max_workers=5)
+
+@contextmanager
+def get_db_connection():
+    """Context manager for database connections"""
+    connection = connection_pool.get_connection()
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+@contextmanager
+def get_db_cursor(commit=False):
+    """Context manager for database operations"""
+    with get_db_connection() as connection:
+        cursor = connection.cursor(dictionary=True)
+        try:
+            yield cursor
+            if commit:
+                connection.commit()
+        except Exception as e:
+            connection.rollback()
+            raise e
+        finally:
+            cursor.close()
 
 def xhr_required(f):
     @wraps(f)
@@ -23,849 +148,62 @@ def xhr_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-DATA_FILE = 'users.json'
-
 # Configuration
 UPLOAD_FOLDER = 'static/uploads/artworks'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi', 'pdf'}
-ARTWORKS_FILE = 'data/artworks.json'
 
 # Ensure directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs('data', exist_ok=True)
+os.makedirs('static/uploads/community', exist_ok=True)
 
-# NOTE: The model names are set to 'gemini-2.5-flash-preview-09-2025'
-my_api_key = 'AIzaSyAlv3bdC2r3dAW7dL_5mZumkElQVXmN2Yk'
+# Gemini API Configuration
+my_api_key = config.get('API', 'gemini_api_key', fallback='')
 genai.configure(api_key=my_api_key)
-
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def read_artworks():
-    """Read artworks from JSON file"""
-    if os.path.exists(ARTWORKS_FILE):
-        with open(ARTWORKS_FILE, 'r') as f:
-            return json.load(f)
-    return []
-
-def write_artworks(artworks):
-    """Write artworks to JSON file"""
-    with open(ARTWORKS_FILE, 'w') as f:
-        json.dump(artworks, f, indent=4)
+def increment_view_count_async(artwork_id):
+    """Asynchronously increment view count"""
+    def _increment():
+        try:
+            with get_db_cursor(commit=True) as cursor:
+                cursor.execute(
+                    "UPDATE artworks SET views = views + 1 WHERE id = %s",
+                    (artwork_id,)
+                )
+        except Exception as e:
+            print(f"Error incrementing view count: {e}")
+    
+    executor.submit(_increment)
 
 def generate(image_path, details_text):
-    """
-    Analyzes an image of an ornament and suggests a fair price.
-    """
+    """Analyzes an image and suggests a fair price"""
     try:
-        # Using the correct, multimodal model name
         model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-
-        # FIX: Use 'with' statement to ensure the image file is closed immediately (fixes WinError 32)
+        
         with Image.open(image_path) as img:
-            
-            # Create the prompt
             prompt_parts = [
                 details_text,
                 img,
                 "\n\nSee the image and details, and suggest a fair price for the ornament based on recent Indian market trends, satisfying both the maker and supplier. dont ask any follow up questions. and just the price nothing else or any other text. The price should be in INR and rather than a range it should be a single value.The price should match the city trends and no price should be less than 1000 INR and go upto tens of thousands."
             ]
-
-            # Generate content and stream the response
+            
             response = model.generate_content(prompt_parts, stream=True)
-
             generated_price = ""
             for chunk in response:
                 generated_price += chunk.text
             
             return generated_price.strip()
-
-    except FileNotFoundError:
-        print(f"Error: The file was not found at {image_path}")
     except Exception as e:
         print(f"An error occurred: {e}")
-    return "0" # Return a default price on failure
-
-def read_users():
-    if not os.path.exists(DATA_FILE):
-        return []
-    with open(DATA_FILE, 'r') as f:
-        return json.load(f)
-
-def save_users(users):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(users, f, indent=4)
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/about")
-def about():
-    return render_template("about.html")
-
-@app.route("/tools")
-def tools():
-    return render_template("tools.html")
-
-@app.route("/marketplace")
-def marketplace():
-    return render_template("marketplace.html")
-
-@app.route('/api/products', methods=['GET'])
-def get_products():
-    """Get all artworks for marketplace display"""
-    try:
-        artworks = read_artworks()
-        users = read_users()
-        
-        # Filter only published artworks
-        published_artworks = [art for art in artworks if art.get('status') == 'published']
-        
-        # Transform artworks to product format for marketplace
-        products = []
-        for artwork in published_artworks:
-            # Get artist information
-            user = next((u for u in users if u['email'] == artwork['user_email']), None)
-            artist_name = user['name'] if user else 'Anonymous Artisan'
-            
-            # Get artist location (you can add location field to user profile)
-            location = user.get('location', 'India') if user else 'India'
-            
-            product = {
-                'id': artwork['id'],
-                'name': artwork['title'],
-                'artist': artist_name,
-                'category': artwork['category'],
-                'price': artwork.get('price', 0) or 0,
-                'image': f"/static/{artwork['files'][0]}" if artwork['files'] else 'https://via.placeholder.com/400x280/f9fafb/9ca3af?text=No+Image',
-                'images': [f"/static/{file}" for file in artwork['files']],
-                'location': location,
-                'rating': 4.5,  # Default rating, you can implement actual rating system
-                'reviews': artwork.get('views', 0),
-                'authentic': True,
-                'description': artwork['description'],
-                'material': artwork['material'],
-                'created_at': artwork['created_at'],
-                'views': artwork.get('views', 0),
-                'likes': artwork.get('likes', 0)
-            }
-            products.append(product)
-        
-        return jsonify(products), 200
-        
-    except Exception as e:
-        print(f"Error fetching products: {str(e)}")
-        return jsonify({'error': 'Failed to fetch products'}), 500
-
-@app.route('/api/product/<product_id>', methods=['GET'])
-def get_product_details(product_id):
-    """Get detailed information about a specific product"""
-    try:
-        artworks = read_artworks()
-        users = read_users()
-        
-        # Find the artwork
-        artwork = next((art for art in artworks if art['id'] == product_id), None)
-        
-        if not artwork:
-            return jsonify({'error': 'Product not found'}), 404
-        
-        # Get artist information
-        user = next((u for u in users if u['email'] == artwork['user_email']), None)
-        artist_name = user['name'] if user else 'Anonymous Artisan'
-        location = user.get('location', 'India') if user else 'India'
-        
-        # Increment view count
-        artwork['views'] = artwork.get('views', 0) + 1
-        write_artworks(artworks)
-        
-        product = {
-            'id': artwork['id'],
-            'name': artwork['title'],
-            'artist': artist_name,
-            'artist_email': artwork['user_email'],
-            'category': artwork['category'],
-            'price': artwork.get('price', 0) or 0,
-            'images': [f"/static/{file}" for file in artwork['files']],
-            'location': location,
-            'rating': 4.5,
-            'reviews': artwork.get('views', 0),
-            'authentic': True,
-            'description': artwork['description'],
-            'material': artwork['material'],
-            'created_at': artwork['created_at'],
-            'views': artwork.get('views', 0),
-            'likes': artwork.get('likes', 0),
-            'feedback': artwork.get('feedback', [])
-        }
-        
-        return jsonify(product), 200
-        
-    except Exception as e:
-        print(f"Error fetching product details: {str(e)}")
-        return jsonify({'error': 'Failed to fetch product details'}), 500
-
-
-@app.route('/api/product/<product_id>/like', methods=['POST'])
-@xhr_required
-def like_product(product_id):
-    """Like/Unlike a product"""
-    try:
-        artworks = read_artworks()
-        
-        # Find the artwork
-        artwork = next((art for art in artworks if art['id'] == product_id), None)
-        
-        if not artwork:
-            return jsonify({'error': 'Product not found'}), 404
-        
-        # Toggle like (simple implementation, you can make it user-specific)
-        artwork['likes'] = artwork.get('likes', 0) + 1
-        write_artworks(artworks)
-        
-        return jsonify({
-            'success': True,
-            'likes': artwork['likes']
-        }), 200
-        
-    except Exception as e:
-        print(f"Error liking product: {str(e)}")
-        return jsonify({'error': 'Failed to like product'}), 500
-
-
-@app.route("/community")
-def community():
-    if 'user_email' not in session:
-        return redirect(url_for('studio', next='community'))
-    return render_template("community.html")
-
-
-@app.route('/api/community/posts', methods=['GET', 'POST'])
-def handle_community_posts():
-    COMMUNITY_POSTS_FILE = 'data/community_posts.json'
-    COMMUNITY_UPLOAD_FOLDER = 'static/uploads/community'
-    os.makedirs(COMMUNITY_UPLOAD_FOLDER, exist_ok=True)
-
-    if request.method == 'GET':
-        if os.path.exists(COMMUNITY_POSTS_FILE):
-            with open(COMMUNITY_POSTS_FILE, 'r') as f:
-                posts = json.load(f)
-            users = read_users()
-            for post in posts:
-                user = next((u for u in users if u['email'] == post['user_email']), None)
-                post['artist_name'] = user['name'] if user else 'Anonymous Artisan'
-            return jsonify(posts)
-        return jsonify([])
-
-    if request.method == 'POST':
-        print(f"User email in session: {session.get('user_email')}")
-        if 'user_email' not in session:
-            return jsonify({'success': False, 'message': 'Please login first'}), 401
-
-        description = request.form.get('description')
-        print(f"Description received: {description}")
-        if not description:
-            return jsonify({'success': False, 'message': 'Description is required'}), 400
-
-        image_path = None
-        if 'image' in request.files:
-            file = request.files['image']
-            print(f"File received: {file.filename}")
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                unique_filename = f"{timestamp}_{filename}"
-                image_path = os.path.join(COMMUNITY_UPLOAD_FOLDER, unique_filename)
-                print(f"Image path before saving: {image_path}")
-                try:
-                    file.save(image_path)
-                    image_path = image_path.replace('\\', '/') # Normalize path for web
-                    print(f"Image saved successfully at: {image_path}")
-                except Exception as e:
-                    print(f"Error saving image: {e}")
-                    return jsonify({'success': False, 'message': f'Error saving image: {e}'}), 500
-            else:
-                print(f"File not allowed or no filename: {file.filename}")
-                return jsonify({'success': False, 'message': 'File type not allowed or no file selected'}), 400
-        else:
-            print("No image file received.")
-
-        new_post = {
-            'id': datetime.now().strftime('%Y%m%d%H%M%S%f'),
-            'user_email': session['user_email'],
-            'description': description,
-            'image': image_path,
-            'timestamp': datetime.now().isoformat()
-        }
-
-        posts = []
-        if os.path.exists(COMMUNITY_POSTS_FILE):
-            with open(COMMUNITY_POSTS_FILE, 'r') as f:
-                posts = json.load(f)
-        
-        posts.insert(0, new_post) # Add new post to the beginning
-
-        with open(COMMUNITY_POSTS_FILE, 'w') as f:
-            json.dump(posts, f, indent=4)
-
-        return jsonify({'success': True, 'message': 'Post created successfully'}), 201
-
-@app.route("/contact")
-def contact():
-    return render_template("contact.html")
-
-@app.route("/join")
-def join():
-    return render_template("join.html")
-
-@app.route('/signup', methods=['POST'])
-def signup():
-    data = request.get_json()
-    name = data.get('name')
-    email = data.get('email')
-    password = data.get('password')
-
-    users = read_users()
-    
-    if any(u['email'] == email for u in users):
-        return jsonify({'success': False, 'message': 'Email already registered'})
-
-    salt = os.urandom(16).hex()
-    hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
-
-    users.append({
-        'name': name,
-        'email': email,
-        'password': f"{salt}:{hashed_password}"
-    })
-    save_users(users)
-
-    # Log the user in immediately after signup
-    session['user_email'] = email
-
-    return jsonify({'success': True, 'message': 'Account created successfully'})
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-
-    users = read_users()
-    
-    user = next((u for u in users if u['email'] == email), None)
-
-    if user:
-        stored_password_full = user.get('password', '')
-        if ':' in stored_password_full:
-            salt, stored_password_hash = stored_password_full.split(':', 1)
-            hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
-            if hashed_password == stored_password_hash:
-                session['user_email'] = email
-                next_url = request.json.get('next')
-                if next_url == 'community':
-                    return jsonify({'success': True, 'message': 'Login successful', 'redirect': url_for('community')})
-                return jsonify({'success': True, 'message': 'Login successful'})
-
-    return jsonify({'success': False, 'message': 'Invalid email or password'})
-
-@app.route('/api/upload-artwork', methods=['POST'])
-def upload_artwork():
-    """Handle artwork upload with images and metadata"""
-    
-    # Check if user is logged in
-    if 'user_email' not in session:
-        return jsonify({'success': False, 'message': 'Please login first'}), 401
-    
-    try:
-        # Get form data
-        title = request.form.get('title').title()
-        category = request.form.get('category')
-
-        # Correct and translate title and category
-        corrected_title = correct_and_translate_text(title)
-        corrected_category = correct_and_translate_text(category)
-
-        material = request.form.get('material')
-        description = request.form.get('description')
-        price = request.form.get('price', '')
-        
-        
-        # Validate required fields
-        if not all([corrected_title, corrected_category, material, description]):
-            return jsonify({'success': False, 'message': 'All fields are required'}), 400
-        
-        # Handle file uploads
-        uploaded_files = []
-        filepath = None # Initialize filepath for potential price generation
-        
-        if 'files' in request.files:
-            files = request.files.getlist('files')
-            
-            for file in files:
-                if file and file.filename and allowed_file(file.filename):
-                    # Secure the filename
-                    filename = secure_filename(file.filename)
-                    
-                    # Create unique filename with timestamp
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    unique_filename = f"{timestamp}_{filename}"
-                    
-                    # Save file
-                    filepath_temp = os.path.join(UPLOAD_FOLDER, unique_filename)
-                    file.save(filepath_temp)
-                    
-                    if not filepath:
-                        filepath = filepath_temp # Keep the first file path for price generation
-                    
-                    # Store relative path for web access
-                    uploaded_files.append(f'uploads/artworks/{unique_filename}')
-        
-        if not uploaded_files or not filepath:
-            return jsonify({'success': False, 'message': 'At least one file is required'}), 400
-        
-        # Create artwork object
-        details_text = f"""
-        Title: {corrected_title}
-        Category: {corrected_category}
-        Material: {material}
-        Description: {description}
-        """
-        
-        # If no price is provided, generate it using the first uploaded image
-        if not price:
-            # The generate function uses 'with Image.open()' to avoid file locking
-            generated_price = generate(filepath, details_text)
-            price = generated_price
-
-        artwork = {
-            'id': datetime.now().strftime('%Y%m%d%H%M%S%f'),
-            'user_email': session['user_email'],
-            'title': corrected_title,
-            'category': corrected_category,
-            'material': material,
-            'description': description,
-            'price': float(price) if price and price.replace('INR', '').strip().replace(',', '').isdigit() else None,
-            'files': uploaded_files,
-            'created_at': datetime.now().isoformat(),
-            'status': 'published',
-            'views': 0,
-            'likes': 0
-        }
-        
-        # Read existing artworks
-        artworks = read_artworks()
-        
-        # Add new artwork
-        artworks.append(artwork)
-        
-        # Save to file
-        write_artworks(artworks)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Artwork uploaded successfully!',
-            'artwork': artwork
-        }), 200
-        
-    except Exception as e:
-        print(f"Error uploading artwork: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred while uploading'}), 500
-
-
-@app.route('/api/my-artworks', methods=['GET'])
-@xhr_required
-def get_my_artworks():
-    """Get all artworks uploaded by the logged-in user"""
-    
-    if 'user_email' not in session:
-        return jsonify({'success': False, 'message': 'Please login first'}), 401
-    
-    try:
-        artworks = read_artworks()
-        user_email = session['user_email']
-        
-        # Filter artworks by user
-        user_artworks = [art for art in artworks if art['user_email'] == user_email]
-        
-        return jsonify({
-            'success': True,
-            'artworks': user_artworks
-        }), 200
-        
-    except Exception as e:
-        print(f"Error fetching artworks: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
-
-
-@app.route('/api/my-posts', methods=['GET'])
-@xhr_required
-def get_my_posts():
-    """Get all posts by the logged-in user"""
-    if 'user_email' not in session:
-        return jsonify({'success': False, 'message': 'Please login first'}), 401
-    
-    try:
-        COMMUNITY_POSTS_FILE = 'data/community_posts.json'
-        if os.path.exists(COMMUNITY_POSTS_FILE):
-            with open(COMMUNITY_POSTS_FILE, 'r') as f:
-                posts = json.load(f)
-            
-            user_email = session['user_email']
-            user_posts = [post for post in posts if post['user_email'] == user_email]
-            return jsonify({'success': True, 'posts': user_posts}), 200
-        return jsonify({'success': True, 'posts': []}), 200
-    except Exception as e:
-        print(f"Error fetching posts: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
-
-
-@app.route('/api/delete-post/<post_id>', methods=['DELETE'])
-@xhr_required
-def delete_post(post_id):
-    """Delete a community post"""
-    if 'user_email' not in session:
-        return jsonify({'success': False, 'message': 'Please login first'}), 401
-
-    try:
-        COMMUNITY_POSTS_FILE = 'data/community_posts.json'
-        if os.path.exists(COMMUNITY_POSTS_FILE):
-            with open(COMMUNITY_POSTS_FILE, 'r') as f:
-                posts = json.load(f)
-
-            user_email = session['user_email']
-            post_to_delete = next((post for post in posts if post['id'] == post_id and post['user_email'] == user_email), None)
-
-            if not post_to_delete:
-                return jsonify({'success': False, 'message': 'Post not found or you do not have permission to delete it'}), 404
-
-            # Delete image file if it exists
-            if post_to_delete.get('image') and os.path.exists(post_to_delete['image']):
-                os.remove(post_to_delete['image'])
-
-            posts = [post for post in posts if post['id'] != post_id]
-
-            with open(COMMUNITY_POSTS_FILE, 'w') as f:
-                json.dump(posts, f, indent=4)
-
-            return jsonify({'success': True, 'message': 'Post deleted successfully'}), 200
-        return jsonify({'success': False, 'message': 'Post not found'}), 404
-    except Exception as e:
-        print(f"Error deleting post: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
-
-
-@app.route('/api/delete-artwork/<artwork_id>', methods=['DELETE'])
-@xhr_required
-def delete_artwork(artwork_id):
-    """Delete an artwork"""
-    
-    if 'user_email' not in session:
-        return jsonify({'success': False, 'message': 'Please login first'}), 401
-    
-    try:
-        artworks = read_artworks()
-        user_email = session['user_email']
-        
-        # Find the artwork
-        artwork = next((art for art in artworks if art['id'] == artwork_id and art['user_email'] == user_email), None)
-        
-        if not artwork:
-            return jsonify({'success': False, 'message': 'Artwork not found'}), 404
-        
-        # Delete associated files
-        for file_path in artwork['files']:
-            full_path = os.path.join('static', file_path)
-            if os.path.exists(full_path):
-                os.remove(full_path)
-        
-        # Remove artwork from list
-        artworks = [art for art in artworks if art['id'] != artwork_id]
-        
-        # Save updated list
-        write_artworks(artworks)
-        
-        return jsonify({'success': True, 'message': 'Artwork deleted successfully'}), 200
-        
-    except Exception as e:
-        print(f"Error deleting artwork: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
-
-
-@app.route('/api/all-artworks', methods=['GET'])
-def get_all_artworks():
-    """Get all published artworks (for marketplace)"""
-    
-    try:
-        artworks = read_artworks()
-        
-        # Only return published artworks
-        published_artworks = [art for art in artworks if art.get('status') == 'published']
-        
-        return jsonify({
-            'success': True,
-            'artworks': published_artworks
-        }), 200
-        
-    except Exception as e:
-        print(f"Error fetching artworks: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
-
-# Update your studio route
-@app.route('/studio')
-def studio():
-    is_logged_in = 'user_email' in session
-    user = None
-    if is_logged_in:
-        user_email = session['user_email']
-        users = read_users()
-        user = next((u for u in users if u['email'] == user_email), None)
-    
-    return render_template("studio.html", is_logged_in=is_logged_in, user=user)
-    
-@app.route('/api/check-auth')
-@xhr_required
-def check_auth():
-    if 'user_email' in session:
-        users = read_users()
-        user = next((u for u in users if u['email'] == session['user_email']), None)
-        return jsonify({'logged_in': True, 'user': user})
-    return jsonify({'logged_in': False})
-
-@app.route('/logout')
-def logout():
-    session.pop('user_email', None)
-    return redirect(url_for('studio'))
-
-@app.route('/product/<product_id>')
-def product_detail(product_id):
-    """Render product detail page"""
-    return render_template('product_detail.html', product_id=product_id)
-
-@app.route('/submit_feedback/<product_id>', methods=['POST'])
-def submit_feedback(product_id):
-    feedback_text = request.form.get('feedback_text')
-
-    if not feedback_text:
-        return jsonify({'success': False, 'message': 'Feedback cannot be empty.'}), 400
-
-    artworks = read_artworks()
-    artwork_found = False
-    for artwork in artworks:
-        if artwork['id'] == product_id:
-            if 'feedback' not in artwork:
-                artwork['feedback'] = []
-            artwork['feedback'].append(feedback_text)
-            write_artworks(artworks)
-            artwork_found = True
-            break
-    
-    if artwork_found:
-        return redirect(url_for('product_detail', product_id=product_id))
-    else:
-        return jsonify({'success': False, 'message': 'Product not found.'}), 404
-
-@app.route('/artist/<artist_name>')
-def artist_arts(artist_name):
-    """Render page with all artworks by a specific artist"""
-    artworks = read_artworks()
-    users = read_users()
-    artist = next((u for u in users if u['name'] == artist_name), None)
-    if artist:
-        artist_email = artist['email']
-        artist_artworks = [art for art in artworks if art['user_email'] == artist_email and art.get('status') == 'published']
-    else:
-        artist_artworks = []
-    return render_template('artist_arts.html', artist_name=artist_name, artworks=artist_artworks)    
-
-@app.route('/api/suggest-price', methods=['POST'])
-@xhr_required
-def suggest_price_route():
-    if 'user_email' not in session:
-        return jsonify({'success': False, 'message': 'Please login first'}), 401
-    
-    filepath = None # Initialize filepath outside try block for cleanup
-    try:
-        title = request.form.get('title')
-        category = request.form.get('category')
-        material = request.form.get('material')
-        description = request.form.get('description')
-        
-        if not all([title, category, material, description]):
-            return jsonify({'success': False, 'message': 'All fields are required'}), 400
-
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'message': 'Image file is required'}), 400
-
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'success': False, 'message': 'No selected file'}), 400
-
-        if file and allowed_file(file.filename):
-            # Create a unique temporary path to avoid file conflicts
-            unique_filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{secure_filename(file.filename)}"
-            filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
-            file.save(filepath)
-            
-            details_text = f"""
-            Title: {title}
-            Category: {category}
-            Material: {material}
-            Description: {description}
-            """
-            
-            # The generate function now properly closes the file handle (Fixes WinError 32)
-            price = generate(filepath, details_text)    
-            
-            # Clean up the temporary file after generation
-            os.remove(filepath)
-
-            return jsonify({'success': True, 'price': price})
-        else:
-            return jsonify({'success': False, 'message': 'File type not allowed'}), 400
-
-    except Exception as e:
-        print(f"Error suggesting price: {str(e)}")
-        # If an error occurs, try to clean up the file if it exists
-        if filepath and os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-            except Exception as clean_e:
-                print(f"Error cleaning up file: {clean_e}")
-        return jsonify({'success': False, 'message': 'An error occurred while suggesting price'}), 500
-
-
-@app.route('/api/generate-profile-qr/<artist_name>')
-def generate_profile_qr(artist_name):
-    try:
-        # Generate the URL for the artist's page
-        artist_url = url_for('artist_arts', artist_name=artist_name, _external=True)
-        
-        # Generate QR code
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(artist_url)
-        qr.make(fit=True)
-
-        img = qr.make_image(fill_color="#3E2723", back_color="#F5F0E8")
-        
-        # Save QR code to a bytes buffer
-        buf = io.BytesIO()
-        img.save(buf)
-        buf.seek(0)
-        
-        return send_file(buf, mimetype='image/png')
-
-    except Exception as e:
-        print(f"Error generating profile QR code: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred while generating QR code'}), 500
-
-@app.route('/api/generate-qr/<artwork_id>')
-def generate_qr_route(artwork_id):
-    try:
-        # Generate the URL for the product
-        product_url = url_for('product_detail', product_id=artwork_id, _external=True)
-        
-        # Generate QR code
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(product_url)
-        qr.make(fit=True)
-
-        img = qr.make_image(fill_color="#3E2723", back_color="#F5F0E8")
-        
-        # Save QR code to a bytes buffer
-        buf = io.BytesIO()
-        img.save(buf)
-        buf.seek(0)
-        
-        return send_file(buf, mimetype='image/png')
-
-    except Exception as e:
-        print(f"Error generating QR code: {str(e)}")
-        return jsonify({'success': False, 'message': 'An error occurred while generating QR code'}), 500
-
-@app.route('/api/ai-search', methods=['GET'])
-def ai_search():
-    query = request.args.get('query', '').lower()
-    category = request.args.get('category', 'all').lower()
-
-    artworks = read_artworks()
-    users = read_users()
-
-    if not query:
-        return jsonify([])
-
-    # Simulate AI-powered search with weighted scoring
-    search_results = []
-    for artwork in artworks:
-        if artwork.get('status') != 'published':
-            continue
-
-        score = 0
-        # Higher weight for title matches
-        if query in artwork['title'].lower():
-            score += 3
-        # Medium weight for category and material matches
-        if query in artwork['category'].lower():
-            score += 2
-        if query in artwork['material'].lower():
-            score += 2
-        # Lower weight for description matches
-        if query in artwork['description'].lower():
-            score += 1
-
-        if score > 0:
-            if category == 'all' or artwork['category'].lower() == category:
-                user = next((u for u in users if u['email'] == artwork['user_email']), None)
-                artist_name = user['name'] if user else 'Anonymous Artisan'
-                location = user.get('location', 'India') if user else 'India'
-
-                search_results.append({
-                    'id': artwork['id'],
-                    'name': artwork['title'],
-                    'artist': artist_name,
-                    'category': artwork['category'],
-                    'price': artwork.get('price', 0) or 0,
-                    'image': f"/static/{artwork['files'][0]}" if artwork['files'] else 'https://via.placeholder.com/400x280/f9fafb/9ca3af?text=No+Image',
-                    'images': [f"/static/{file}" for file in artwork['files']],
-                    'location': location,
-                    'rating': 4.5,
-                    'reviews': artwork.get('views', 0),
-                    'authentic': True,
-                    'description': artwork['description'],
-                    'material': artwork['material'],
-                    'created_at': artwork['created_at'],
-                    'views': artwork.get('views', 0),
-                    'likes': artwork.get('likes', 0),
-                    'score': score
-                })
-
-    # Sort results by score
-    search_results.sort(key=lambda x: x['score'], reverse=True)
-
-    return jsonify(search_results)
+        return "0"
 
 def generate_description(image_path, title, category, material, existing_description=""):
-    """
-    Generates a description for an artwork using AI.
-    """
+    """Generates a description for an artwork using AI"""
     try:
-        # Using the correct, multimodal model name
         model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-
-        # FIX: Use 'with' statement to ensure the image file is closed immediately (fixes WinError 32)
+        
         with Image.open(image_path) as img:
             if existing_description:
                 prompt = f"""
@@ -893,81 +231,780 @@ def generate_description(image_path, title, category, material, existing_descrip
 
                 Description:
                 """
-
+            
             response = model.generate_content([prompt, img])
             return response.text.strip()
-
     except Exception as e:
         print(f"An error occurred during description generation: {e}")
         return "Failed to generate description."
 
 def correct_and_translate_text(text_to_correct):
-    """
-    Corrects spelling and translates text to English using Gemini AI.
-    """
+    """Corrects spelling and translates text to English using Gemini AI"""
     try:
-        # Using the correct model name
         model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-
-        # Create the prompt
         prompt = f"Correct the spelling of the following text. If the text is not in English, translate it to English. Do not add any extra information or change the meaning. Just provide the corrected and translated text. The text is: '{text_to_correct}'"
-
-        # Generate content
         response = model.generate_content(prompt)
-
         return response.text.strip()
-
     except Exception as e:
         print(f"An error occurred during text correction: {e}")
-        return text_to_correct # Return original text in case of an error
+        return text_to_correct
+
+# Routes
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+@app.route("/tools")
+def tools():
+    return render_template("tools.html")
+
+@app.route("/marketplace")
+def marketplace():
+    return render_template("marketplace.html")
+
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    """Get all artworks for marketplace display"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT a.*, u.name as artist_name
+                FROM artworks a
+                JOIN users u ON a.user_email = u.email
+                WHERE a.status = 'published'
+                ORDER BY a.created_at DESC
+            """)
+            artworks = cursor.fetchall()
+            
+            products = []
+            for artwork in artworks:
+                files = json.loads(artwork['files']) if artwork['files'] else []
+                product = {
+                    'id': artwork['id'],
+                    'name': artwork['title'],
+                    'artist': artwork['artist_name'],
+                    'category': artwork['category'],
+                    'price': float(artwork['price']) if artwork['price'] else 0,
+                    'image': f"/static/{files[0]}" if files else 'https://via.placeholder.com/400x280/f9fafb/9ca3af?text=No+Image',
+                    'images': [f"/static/{file}" for file in files],
+                    'location': 'India',
+                    'rating': 4.5,
+                    'reviews': artwork['views'],
+                    'authentic': True,
+                    'description': artwork['description'],
+                    'material': artwork['material'],
+                    'created_at': artwork['created_at'].isoformat() if artwork['created_at'] else None,
+                    'views': artwork['views'],
+                    'likes': artwork['likes']
+                }
+                products.append(product)
+            
+            return jsonify(products), 200
+    except Exception as e:
+        print(f"Error fetching products: {str(e)}")
+        return jsonify({'error': 'Failed to fetch products'}), 500
+
+@app.route('/api/product/<product_id>', methods=['GET'])
+def get_product_details(product_id):
+    """Get detailed information about a specific product"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT a.*, u.name as artist_name
+                FROM artworks a
+                JOIN users u ON a.user_email = u.email
+                WHERE a.id = %s
+            """, (product_id,))
+            artwork = cursor.fetchone()
+            
+            if not artwork:
+                return jsonify({'error': 'Product not found'}), 404
+            
+            # Increment view count asynchronously
+            increment_view_count_async(product_id)
+            
+            files = json.loads(artwork['files']) if artwork['files'] else []
+            feedback = json.loads(artwork['feedback']) if artwork['feedback'] else []
+            
+            product = {
+                'id': artwork['id'],
+                'name': artwork['title'],
+                'artist': artwork['artist_name'],
+                'artist_email': artwork['user_email'],
+                'category': artwork['category'],
+                'price': float(artwork['price']) if artwork['price'] else 0,
+                'images': [f"/static/{file}" for file in files],
+                'location': 'India',
+                'rating': 4.5,
+                'reviews': artwork['views'],
+                'authentic': True,
+                'description': artwork['description'],
+                'material': artwork['material'],
+                'created_at': artwork['created_at'].isoformat() if artwork['created_at'] else None,
+                'views': artwork['views'],
+                'likes': artwork['likes'],
+                'feedback': feedback
+            }
+            
+            return jsonify(product), 200
+    except Exception as e:
+        print(f"Error fetching product details: {str(e)}")
+        return jsonify({'error': 'Failed to fetch product details'}), 500
+
+@app.route('/api/product/<product_id>/like', methods=['POST'])
+@xhr_required
+def like_product(product_id):
+    """Like/Unlike a product"""
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                "UPDATE artworks SET likes = likes + 1 WHERE id = %s",
+                (product_id,)
+            )
+            
+            cursor.execute("SELECT likes FROM artworks WHERE id = %s", (product_id,))
+            result = cursor.fetchone()
+            
+            if not result:
+                return jsonify({'error': 'Product not found'}), 404
+            
+            return jsonify({
+                'success': True,
+                'likes': result['likes']
+            }), 200
+    except Exception as e:
+        print(f"Error liking product: {str(e)}")
+        return jsonify({'error': 'Failed to like product'}), 500
+
+@app.route("/community")
+def community():
+    return render_template("community.html")
+
+@app.route('/api/community/posts', methods=['GET', 'POST'])
+def handle_community_posts():
+    COMMUNITY_UPLOAD_FOLDER = 'static/uploads/community'
+    
+    if request.method == 'GET':
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute("""
+                    SELECT cp.*, u.name as artist_name
+                    FROM community_posts cp
+                    JOIN users u ON cp.user_email = u.email
+                    ORDER BY cp.timestamp DESC
+                """)
+                posts = cursor.fetchall()
+                
+                for post in posts:
+                    if post['timestamp']:
+                        post['timestamp'] = post['timestamp'].isoformat()
+                
+                return jsonify(posts)
+        except Exception as e:
+            print(f"Error fetching community posts: {str(e)}")
+            return jsonify([])
+    
+    if request.method == 'POST':
+        if 'user_email' not in session:
+            return jsonify({'success': False, 'message': 'Please login first'}), 401
+        
+        description = request.form.get('description')
+        if not description:
+            return jsonify({'success': False, 'message': 'Description is required'}), 400
+        
+        image_path = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"{timestamp}_{filename}"
+                image_path = os.path.join(COMMUNITY_UPLOAD_FOLDER, unique_filename)
+                file.save(image_path)
+                image_path = image_path.replace('\\', '/')
+        
+        try:
+            with get_db_cursor(commit=True) as cursor:
+                post_id = datetime.now().strftime('%Y%m%d%H%M%S%f')
+                cursor.execute("""
+                    INSERT INTO community_posts (id, user_email, description, image, timestamp)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (post_id, session['user_email'], description, image_path, datetime.now()))
+                
+                return jsonify({'success': True, 'message': 'Post created successfully'}), 201
+        except Exception as e:
+            print(f"Error creating post: {str(e)}")
+            return jsonify({'success': False, 'message': 'Failed to create post'}), 500
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
+
+@app.route("/join")
+def join():
+    return render_template("join.html")
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    password = data.get('password')
+    
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            # Check if email exists
+            cursor.execute("SELECT email FROM users WHERE email = %s", (email,))
+            if cursor.fetchone():
+                return jsonify({'success': False, 'message': 'Email already registered'})
+            
+            # Hash password
+            salt = os.urandom(16).hex()
+            hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
+            
+            # Insert user
+            cursor.execute(
+                "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)",
+                (name, email, f"{salt}:{hashed_password}")
+            )
+            
+            session['user_email'] = email
+            return jsonify({'success': True, 'message': 'Account created successfully'})
+    except Exception as e:
+        print(f"Error during signup: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred during signup'}), 500
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT password FROM users WHERE email = %s", (email,))
+            user = cursor.fetchone()
+            
+            if user:
+                stored_password_full = user['password']
+                if ':' in stored_password_full:
+                    salt, stored_password_hash = stored_password_full.split(':', 1)
+                    hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
+                    
+                    if hashed_password == stored_password_hash:
+                        session['user_email'] = email
+                        next_url = request.json.get('next')
+                        if next_url == 'community':
+                            return jsonify({'success': True, 'message': 'Login successful', 'redirect': url_for('community')})
+                        return jsonify({'success': True, 'message': 'Login successful'})
+            
+            return jsonify({'success': False, 'message': 'Invalid email or password'})
+    except Exception as e:
+        print(f"Error during login: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred during login'}), 500
+
+@app.route('/api/upload-artwork', methods=['POST'])
+def upload_artwork():
+    """Handle artwork upload with images and metadata"""
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    try:
+        title = request.form.get('title').title()
+        category = request.form.get('category')
+        corrected_title = correct_and_translate_text(title)
+        corrected_category = correct_and_translate_text(category)
+        material = request.form.get('material')
+        description = request.form.get('description')
+        price = request.form.get('price', '')
+        
+        if not all([corrected_title, corrected_category, material, description]):
+            return jsonify({'success': False, 'message': 'All fields are required'}), 400
+        
+        uploaded_files = []
+        filepath = None
+        
+        if 'files' in request.files:
+            files = request.files.getlist('files')
+            for file in files:
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    unique_filename = f"{timestamp}_{filename}"
+                    filepath_temp = os.path.join(UPLOAD_FOLDER, unique_filename)
+                    file.save(filepath_temp)
+                    
+                    if not filepath:
+                        filepath = filepath_temp
+                    
+                    uploaded_files.append(f'uploads/artworks/{unique_filename}')
+        
+        if not uploaded_files or not filepath:
+            return jsonify({'success': False, 'message': 'At least one file is required'}), 400
+        
+        details_text = f"""
+        Title: {corrected_title}
+        Category: {corrected_category}
+        Material: {material}
+        Description: {description}
+        """
+        
+        if not price:
+            generated_price = generate(filepath, details_text)
+            price = generated_price
+        
+        with get_db_cursor(commit=True) as cursor:
+            artwork_id = datetime.now().strftime('%Y%m%d%H%M%S%f')
+            cursor.execute("""
+                INSERT INTO artworks 
+                (id, user_email, title, category, material, description, price, files, created_at, status, views, likes, feedback)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                artwork_id,
+                session['user_email'],
+                corrected_title,
+                corrected_category,
+                material,
+                description,
+                float(price) if price and price.replace('INR', '').strip().replace(',', '').isdigit() else None,
+                json.dumps(uploaded_files),
+                datetime.now(),
+                'published',
+                0,
+                0,
+                json.dumps([])
+            ))
+            
+            return jsonify({
+                'success': True,
+                'message': 'Artwork uploaded successfully!',
+                'artwork': {
+                    'id': artwork_id,
+                    'title': corrected_title,
+                    'category': corrected_category
+                }
+            }), 200
+    except Exception as e:
+        print(f"Error uploading artwork: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred while uploading'}), 500
+
+@app.route('/api/my-artworks', methods=['GET'])
+@xhr_required
+def get_my_artworks():
+    """Get all artworks uploaded by the logged-in user"""
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT * FROM artworks WHERE user_email = %s ORDER BY created_at DESC
+            """, (session['user_email'],))
+            artworks = cursor.fetchall()
+            
+            for artwork in artworks:
+                artwork['files'] = json.loads(artwork['files']) if artwork['files'] else []
+                artwork['feedback'] = json.loads(artwork['feedback']) if artwork['feedback'] else []
+                if artwork['created_at']:
+                    artwork['created_at'] = artwork['created_at'].isoformat()
+            
+            return jsonify({'success': True, 'artworks': artworks}), 200
+    except Exception as e:
+        print(f"Error fetching artworks: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/api/my-posts', methods=['GET'])
+@xhr_required
+def get_my_posts():
+    """Get all posts by the logged-in user"""
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT * FROM community_posts WHERE user_email = %s ORDER BY timestamp DESC
+            """, (session['user_email'],))
+            posts = cursor.fetchall()
+            
+            for post in posts:
+                if post['timestamp']:
+                    post['timestamp'] = post['timestamp'].isoformat()
+            
+            return jsonify({'success': True, 'posts': posts}), 200
+    except Exception as e:
+        print(f"Error fetching posts: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/api/delete-post/<post_id>', methods=['DELETE'])
+@xhr_required
+def delete_post(post_id):
+    """Delete a community post"""
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute("""
+                SELECT image FROM community_posts WHERE id = %s AND user_email = %s
+            """, (post_id, session['user_email']))
+            post = cursor.fetchone()
+            
+            if not post:
+                return jsonify({'success': False, 'message': 'Post not found'}), 404
+            
+            if post['image'] and os.path.exists(post['image']):
+                os.remove(post['image'])
+            
+            cursor.execute("""
+                DELETE FROM community_posts WHERE id = %s AND user_email = %s
+            """, (post_id, session['user_email']))
+            
+            return jsonify({'success': True, 'message': 'Post deleted successfully'}), 200
+    except Exception as e:
+        print(f"Error deleting post: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/api/delete-artwork/<artwork_id>', methods=['DELETE'])
+@xhr_required
+def delete_artwork(artwork_id):
+    """Delete an artwork"""
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute("""
+                SELECT files FROM artworks WHERE id = %s AND user_email = %s
+            """, (artwork_id, session['user_email']))
+            artwork = cursor.fetchone()
+            
+            if not artwork:
+                return jsonify({'success': False, 'message': 'Artwork not found'}), 404
+            
+            files = json.loads(artwork['files']) if artwork['files'] else []
+            for file_path in files:
+                full_path = os.path.join('static', file_path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+            
+            cursor.execute("""
+                DELETE FROM artworks WHERE id = %s AND user_email = %s
+            """, (artwork_id, session['user_email']))
+            
+            return jsonify({'success': True, 'message': 'Artwork deleted successfully'}), 200
+    except Exception as e:
+        print(f"Error deleting artwork: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/studio')
+def studio():
+    is_logged_in = 'user_email' in session
+    user = None
+    if is_logged_in:
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute("SELECT name, email FROM users WHERE email = %s", (session['user_email'],))
+                user = cursor.fetchone()
+        except Exception as e:
+            print(f"Error fetching user: {str(e)}")
+    
+    return render_template("studio.html", is_logged_in=is_logged_in, user=user)
+
+@app.route('/api/check-auth')
+@xhr_required
+def check_auth():
+    if 'user_email' in session:
+        try:
+            with get_db_cursor() as cursor:
+                cursor.execute("SELECT name, email FROM users WHERE email = %s", (session['user_email'],))
+                user = cursor.fetchone()
+                return jsonify({'logged_in': True, 'user': user})
+        except Exception as e:
+            print(f"Error checking auth: {str(e)}")
+    return jsonify({'logged_in': False})
+
+@app.route('/logout')
+def logout():
+    session.pop('user_email', None)
+    return redirect(url_for('studio'))
+
+@app.route('/product/<product_id>')
+def product_detail(product_id):
+    """Render product detail page"""
+    return render_template('product_detail.html', product_id=product_id)
+
+@app.route('/submit_feedback/<product_id>', methods=['POST'])
+def submit_feedback(product_id):
+    feedback_text = request.form.get('feedback_text')
+    
+    if not feedback_text:
+        return jsonify({'success': False, 'message': 'Feedback cannot be empty.'}), 400
+    
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute("SELECT feedback FROM artworks WHERE id = %s", (product_id,))
+            artwork = cursor.fetchone()
+            
+            if not artwork:
+                return jsonify({'success': False, 'message': 'Product not found.'}), 404
+            
+            feedback = json.loads(artwork['feedback']) if artwork['feedback'] else []
+            feedback.append(feedback_text)
+            
+            cursor.execute(
+                "UPDATE artworks SET feedback = %s WHERE id = %s",
+                (json.dumps(feedback), product_id)
+            )
+            
+            return redirect(url_for('product_detail', product_id=product_id))
+    except Exception as e:
+        print(f"Error submitting feedback: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/artist/<artist_name>')
+def artist_arts(artist_name):
+    """Render page with all artworks by a specific artist"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("SELECT email FROM users WHERE name = %s", (artist_name,))
+            artist = cursor.fetchone()
+            
+            if artist:
+                cursor.execute("""
+                    SELECT * FROM artworks 
+                    WHERE user_email = %s AND status = 'published'
+                    ORDER BY created_at DESC
+                """, (artist['email'],))
+                artworks = cursor.fetchall()
+                
+                for artwork in artworks:
+                    artwork['files'] = json.loads(artwork['files']) if artwork['files'] else []
+                    if artwork['created_at']:
+                        artwork['created_at'] = artwork['created_at'].isoformat()
+            else:
+                artworks = []
+            
+            return render_template('artist_arts.html', artist_name=artist_name, artworks=artworks)
+    except Exception as e:
+        print(f"Error fetching artist artworks: {str(e)}")
+        return render_template('artist_arts.html', artist_name=artist_name, artworks=[])
+
+@app.route('/api/suggest-price', methods=['POST'])
+@xhr_required
+def suggest_price_route():
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    filepath = None
+    try:
+        title = request.form.get('title')
+        category = request.form.get('category')
+        material = request.form.get('material')
+        description = request.form.get('description')
+        
+        if not all([title, category, material, description]):
+            return jsonify({'success': False, 'message': 'All fields are required'}), 400
+        
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': 'Image file is required'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No selected file'}), 400
+        
+        if file and allowed_file(file.filename):
+            unique_filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{secure_filename(file.filename)}"
+            filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+            file.save(filepath)
+            
+            details_text = f"""
+            Title: {title}
+            Category: {category}
+            Material: {material}
+            Description: {description}
+            """
+            
+            price = generate(filepath, details_text)
+            os.remove(filepath)
+            
+            return jsonify({'success': True, 'price': price})
+        else:
+            return jsonify({'success': False, 'message': 'File type not allowed'}), 400
+    except Exception as e:
+        print(f"Error suggesting price: {str(e)}")
+        if filepath and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception as clean_e:
+                print(f"Error cleaning up file: {clean_e}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/api/generate-profile-qr/<artist_name>')
+def generate_profile_qr(artist_name):
+    try:
+        artist_url = url_for('artist_arts', artist_name=artist_name, _external=True)
+        
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(artist_url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="#3E2723", back_color="#F5F0E8")
+        
+        buf = io.BytesIO()
+        img.save(buf)
+        buf.seek(0)
+        
+        return send_file(buf, mimetype='image/png')
+    except Exception as e:
+        print(f"Error generating profile QR code: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/api/generate-qr/<artwork_id>')
+def generate_qr_route(artwork_id):
+    try:
+        product_url = url_for('product_detail', product_id=artwork_id, _external=True)
+        
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(product_url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="#3E2723", back_color="#F5F0E8")
+        
+        buf = io.BytesIO()
+        img.save(buf)
+        buf.seek(0)
+        
+        return send_file(buf, mimetype='image/png')
+    except Exception as e:
+        print(f"Error generating QR code: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+@app.route('/api/ai-search', methods=['GET'])
+def ai_search():
+    query = request.args.get('query', '').lower()
+    category = request.args.get('category', 'all').lower()
+    
+    if not query:
+        return jsonify([])
+    
+    try:
+        with get_db_cursor() as cursor:
+            if category == 'all':
+                cursor.execute("""
+                    SELECT a.*, u.name as artist_name
+                    FROM artworks a
+                    JOIN users u ON a.user_email = u.email
+                    WHERE a.status = 'published'
+                """)
+            else:
+                cursor.execute("""
+                    SELECT a.*, u.name as artist_name
+                    FROM artworks a
+                    JOIN users u ON a.user_email = u.email
+                    WHERE a.status = 'published' AND LOWER(a.category) = %s
+                """, (category,))
+            
+            artworks = cursor.fetchall()
+            
+            search_results = []
+            for artwork in artworks:
+                score = 0
+                title_lower = artwork['title'].lower()
+                category_lower = artwork['category'].lower()
+                material_lower = artwork['material'].lower()
+                description_lower = artwork['description'].lower()
+                
+                if query in title_lower:
+                    score += 3
+                if query in category_lower:
+                    score += 2
+                if query in material_lower:
+                    score += 2
+                if query in description_lower:
+                    score += 1
+                
+                if score > 0:
+                    files = json.loads(artwork['files']) if artwork['files'] else []
+                    search_results.append({
+                        'id': artwork['id'],
+                        'name': artwork['title'],
+                        'artist': artwork['artist_name'],
+                        'category': artwork['category'],
+                        'price': float(artwork['price']) if artwork['price'] else 0,
+                        'image': f"/static/{files[0]}" if files else 'https://via.placeholder.com/400x280/f9fafb/9ca3af?text=No+Image',
+                        'images': [f"/static/{file}" for file in files],
+                        'location': 'India',
+                        'rating': 4.5,
+                        'reviews': artwork['views'],
+                        'authentic': True,
+                        'description': artwork['description'],
+                        'material': artwork['material'],
+                        'created_at': artwork['created_at'].isoformat() if artwork['created_at'] else None,
+                        'views': artwork['views'],
+                        'likes': artwork['likes'],
+                        'score': score
+                    })
+            
+            search_results.sort(key=lambda x: x['score'], reverse=True)
+            return jsonify(search_results)
+    except Exception as e:
+        print(f"Error in AI search: {str(e)}")
+        return jsonify([])
 
 @app.route('/api/generate-description', methods=['POST'])
 @xhr_required
 def generate_description_route():
     if 'user_email' not in session:
         return jsonify({'success': False, 'message': 'Please login first'}), 401
-
-    filepath = None # Initialize filepath outside try block for cleanup
+    
+    filepath = None
     try:
         title = request.form.get('title')
         category = request.form.get('category')
         material = request.form.get('material')
         existing_description = request.form.get('description', '')
-
+        
         if 'file' not in request.files:
             return jsonify({'success': False, 'message': 'Image file is required'}), 400
-
+        
         file = request.files['file']
         if file.filename == '':
             return jsonify({'success': False, 'message': 'No selected file'}), 400
-
+        
         if file and allowed_file(file.filename):
-            # Create a unique temporary path to avoid file conflicts
             unique_filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{secure_filename(file.filename)}"
             filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
             file.save(filepath)
-
-            # The generate_description function now properly closes the file handle (Fixes WinError 32)
+            
             description = generate_description(filepath, title, category, material, existing_description)
-
-            # Clean up the temporary file after generation
             os.remove(filepath)
-
+            
             return jsonify({'success': True, 'description': description})
         else:
             return jsonify({'success': False, 'message': 'File type not allowed'}), 400
-
     except Exception as e:
         print(f"Error in generate-description route: {str(e)}")
-        # If an error occurs, try to clean up the file if it exists
         if filepath and os.path.exists(filepath):
             try:
                 os.remove(filepath)
             except Exception as clean_e:
                 print(f"Error cleaning up file: {clean_e}")
-        return jsonify({'success': False, 'message': 'An error occurred while generating the description'}), 500
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
-
-    
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=7777)
