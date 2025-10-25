@@ -586,8 +586,97 @@ function switchTab(tabName) {
         loadMyArtworks();
     } else if (tabName === 'profile') {
         loadProfileData();
+    } else if (tabName === 'posts') {
+        loadMyPosts();
+        // Reset the post form when opening the posts tab
+        const postForm = document.getElementById('postForm');
+        if (postForm) {
+            postForm.reset();
+        }
     }
 }
+
+// Event listener for the new Create Post button in My Posts tab
+document.addEventListener('DOMContentLoaded', function() {
+    const createPostStudioBtn = document.getElementById('createPostStudioBtn');
+    if (createPostStudioBtn) {
+        createPostStudioBtn.addEventListener('click', () => {
+            window.openPostModal(loadMyPosts);
+        });
+    }
+});
+
+async function loadMyPosts() {
+    try {
+        const response = await fetchWithXHR('/api/my-posts');
+        const data = await response.json();
+        if (data.success) {
+            displayMyPosts(data.posts);
+        } else {
+            alert('Failed to load posts: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error loading posts:', error);
+    }
+}
+
+function displayMyPosts(posts) {
+    const postsGrid = document.querySelector('#postsTab .posts-grid');
+    if (posts.length === 0) {
+        postsGrid.innerHTML = '<p>You have not created any posts yet.</p>';
+        return;
+    }
+
+    const sortOrder = document.getElementById('postSort').value;
+    posts.sort((a, b) => {
+        if (sortOrder === 'newest') {
+            return new Date(b.timestamp) - new Date(a.timestamp);
+        } else {
+            return new Date(a.timestamp) - new Date(b.timestamp);
+        }
+    });
+
+    postsGrid.innerHTML = posts.map(post => `
+        <div class="post-card">
+            <div class="post-header">
+                <img src="/static/assets/hero-artisans.jpg" alt="Artist Avatar" class="artist-avatar">
+                <div class="artist-info">
+                    <h4>${post.artist_name || 'Artist Name'}</h4>
+                    <p class="post-timestamp">${new Date(post.timestamp).toLocaleString()}</p>
+                </div>
+                <button class="delete-post-btn" onclick="deletePost('${post.id}')"><span class="material-symbols-outlined">delete</span></button>
+            </div>
+            <div class="post-content">
+                <p>${post.description}</p>
+                ${post.image ? `<img src="${post.image}" alt="Post Image" class="post-image">` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+async function deletePost(postId) {
+    if (!confirm('Are you sure you want to delete this post?')) {
+        return;
+    }
+
+    try {
+        const response = await fetchWithXHR(`/api/delete-post/${postId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('Post deleted successfully');
+            loadMyPosts();
+        } else {
+            alert('Failed to delete post: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('An error occurred while deleting the post.');
+    }
+}
+
+document.getElementById('postSort').addEventListener('change', loadMyPosts);
 
 // Make switchTab globally available
 window.switchTab = switchTab;

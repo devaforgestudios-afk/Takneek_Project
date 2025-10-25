@@ -8,7 +8,8 @@
 .community-title {
     font-family: 'Playfair Display', serif;
     font-size: 48px;
-    color: #3E2723;
+    margin-top: 30px;
+    color: #b85b34;
     margin-bottom: 10px;
 }
 
@@ -19,7 +20,7 @@
 }
 
 .create-post-btn {
-    background-color: #D2691E;
+    background-color: #5c4833;
     color: white;
     border: none;
     padding: 12px 24px;
@@ -34,7 +35,7 @@
 }
 
 .create-post-btn:hover {
-    background-color: #C85A0F;
+    background-color: #342211;
 }
 
 .container {

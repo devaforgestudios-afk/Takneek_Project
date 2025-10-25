@@ -13,8 +13,11 @@
 }
 
 * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
+
 
 html,
 body {
@@ -39,13 +42,65 @@ body {
     background: linear-gradient(135deg, #f5f0e8 0%, #faf7f2 100%);
 }
 
-/* Hero Section */
 .studio-hero {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.4));
     text-align: center;
     padding: 60px 20px 40px;
     margin-top: 18px;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    background:
+        /* lighter and warmer base gradient */
+        linear-gradient(135deg, rgba(255, 252, 245, 0.95) 0%, rgba(255, 255, 250, 0.95) 100%),
+        /* softer diagonal texture lines */
+        repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(139, 101, 71, 0.015) 35px, rgba(139, 101, 71, 0.015) 70px),
+        repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(210, 105, 30, 0.015) 35px, rgba(210, 105, 30, 0.015) 70px);
+    overflow-x: hidden;
+}
+
+/* Mandala-inspired subtle overlay */
+.studio-hero::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at center, transparent 8px, rgba(139, 101, 71, 0.02) 8px, rgba(139, 101, 71, 0.02) 9px, transparent 9px),
+        repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(210, 105, 30, 0.03) 15deg, transparent 30deg, rgba(212, 175, 55, 0.03) 45deg, transparent 60deg),
+        radial-gradient(ellipse at 20% 30%, rgba(210, 105, 30, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+    background-size: 80px 80px, 200px 200px, 600px 600px, 600px 600px;
+    background-position: 0 0, center, 0 0, 0 0;
+    opacity: 0.35; /* less darkness but keeps design */
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Subtle twinkle overlay */
+.studio-hero::after {
+    content: '✦';
+    position: fixed;
+    top: 0;
+    left: 0;
+    font-size: 20px;
+    color: rgba(139, 101, 71, 0.025);
+    width: 100%;
+    height: 100%;
+    animation: twinkle 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Twinkle animation */
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.03;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.08;
+        transform: scale(1.15);
+    }
 }
 
 .studio-title {
@@ -121,7 +176,72 @@ body {
 
 .tab-content.active {
     display: block;
-    animation: fadeIn 0.3s ease;
+}
+
+#postsTab .post-image {
+    max-height: 400px;
+    object-fit: cover;
+}
+
+#postsTab .sort-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+#postsTab #postSort {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+
+#postsTab .delete-post-btn {
+    background: none;
+    border: none;
+    color: #E57373;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+#postsTab .delete-post-btn:hover {
+    background-color: #FFEBEE;
+}
+
+#postsTab .sort-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#postsTab #postSort {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+
+#postsTab .delete-post-btn {
+    background: none;
+    border: none;
+    color: #E57373;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+#postsTab .delete-post-btn:hover {
+    background-color: #FFEBEE;
 }
 
 @keyframes fadeIn {
@@ -1495,12 +1615,12 @@ body {
 .profile-actions {
     display: flex;
     gap: 12px;
-    margin-top: 20px; /* Add some space above the button */
+    margin-top: 20px;
+    /* Add some space above the button */
 }
 
-qr-display
-.btn-dark-marketplace:hover {
-    background: #1f1111; 
+qr-display .btn-dark-marketplace:hover {
+    background: #1f1111;
     color: #fbf7ee;
 }
 

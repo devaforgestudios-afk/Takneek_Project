@@ -5,6 +5,7 @@
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;600&display=swap"
     rel="stylesheet">
 <link rel="stylesheet" href="static/css/studio.css">
+<link rel="stylesheet" href="static/css/community.css">
 <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -27,6 +28,7 @@
                 <button class="studio-tab active" data-tab="upload">Upload New Work</button>
                 <button class="studio-tab" data-tab="works">My Works</button>
                 <button class="studio-tab" data-tab="profile">Profile</button>
+                <button class="studio-tab" data-tab="posts">My Posts</button>
                 <a href="/logout" class="studio-tab" id="logout-button">
                     <span class="material-symbols-outlined">logout</span>
                     Logout
@@ -213,6 +215,29 @@
                         <h3>No artworks yet</h3>
                         <p>Start by uploading your first creation</p>
                         <button class="btn-primary" onclick="switchTab('upload')">Upload Artwork</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Posts Tab Content -->
+            <div id="postsTab" class="tab-content">
+                <div class="posts-header">
+                    <h2 class="card-title">My Community Posts</h2>
+                    <button class="create-post-btn" id="createPostStudioBtn" style="margin-bottom: 20px;">
+                        <span class="material-symbols-outlined" >add</span>
+                        Create Post
+                    </button>
+                    <div class="sort-container">
+                        <label for="postSort">Sort by:</label>
+                        <select id="postSort">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="container">
+                    <div class="posts-grid">
+                        <!-- Posts will be loaded here -->
                     </div>
                 </div>
             </div>

@@ -261,23 +261,37 @@ def handle_community_posts():
         return jsonify([])
 
     if request.method == 'POST':
+        print(f"User email in session: {session.get('user_email')}")
         if 'user_email' not in session:
             return jsonify({'success': False, 'message': 'Please login first'}), 401
 
         description = request.form.get('description')
+        print(f"Description received: {description}")
         if not description:
             return jsonify({'success': False, 'message': 'Description is required'}), 400
 
         image_path = None
         if 'image' in request.files:
             file = request.files['image']
-            if file and allowed_file(file.filename):
+            print(f"File received: {file.filename}")
+            if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 unique_filename = f"{timestamp}_{filename}"
                 image_path = os.path.join(COMMUNITY_UPLOAD_FOLDER, unique_filename)
-                file.save(image_path)
-                image_path = image_path.replace('\\', '/') # Normalize path for web
+                print(f"Image path before saving: {image_path}")
+                try:
+                    file.save(image_path)
+                    image_path = image_path.replace('\\', '/') # Normalize path for web
+                    print(f"Image saved successfully at: {image_path}")
+                except Exception as e:
+                    print(f"Error saving image: {e}")
+                    return jsonify({'success': False, 'message': f'Error saving image: {e}'}), 500
+            else:
+                print(f"File not allowed or no filename: {file.filename}")
+                return jsonify({'success': False, 'message': 'File type not allowed or no file selected'}), 400
+        else:
+            print("No image file received.")
 
         new_post = {
             'id': datetime.now().strftime('%Y%m%d%H%M%S%f'),
@@ -484,6 +498,63 @@ def get_my_artworks():
         
     except Exception as e:
         print(f"Error fetching artworks: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+@app.route('/api/my-posts', methods=['GET'])
+@xhr_required
+def get_my_posts():
+    """Get all posts by the logged-in user"""
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    try:
+        COMMUNITY_POSTS_FILE = 'data/community_posts.json'
+        if os.path.exists(COMMUNITY_POSTS_FILE):
+            with open(COMMUNITY_POSTS_FILE, 'r') as f:
+                posts = json.load(f)
+            
+            user_email = session['user_email']
+            user_posts = [post for post in posts if post['user_email'] == user_email]
+            return jsonify({'success': True, 'posts': user_posts}), 200
+        return jsonify({'success': True, 'posts': []}), 200
+    except Exception as e:
+        print(f"Error fetching posts: {str(e)}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+@app.route('/api/delete-post/<post_id>', methods=['DELETE'])
+@xhr_required
+def delete_post(post_id):
+    """Delete a community post"""
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+
+    try:
+        COMMUNITY_POSTS_FILE = 'data/community_posts.json'
+        if os.path.exists(COMMUNITY_POSTS_FILE):
+            with open(COMMUNITY_POSTS_FILE, 'r') as f:
+                posts = json.load(f)
+
+            user_email = session['user_email']
+            post_to_delete = next((post for post in posts if post['id'] == post_id and post['user_email'] == user_email), None)
+
+            if not post_to_delete:
+                return jsonify({'success': False, 'message': 'Post not found or you do not have permission to delete it'}), 404
+
+            # Delete image file if it exists
+            if post_to_delete.get('image') and os.path.exists(post_to_delete['image']):
+                os.remove(post_to_delete['image'])
+
+            posts = [post for post in posts if post['id'] != post_id]
+
+            with open(COMMUNITY_POSTS_FILE, 'w') as f:
+                json.dump(posts, f, indent=4)
+
+            return jsonify({'success': True, 'message': 'Post deleted successfully'}), 200
+        return jsonify({'success': False, 'message': 'Post not found'}), 404
+    except Exception as e:
+        print(f"Error deleting post: {str(e)}")
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 

@@ -1,49 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     const createPostBtn = document.getElementById('createPostBtn');
-    const modal = document.getElementById('postModal');
-    const closeBtn = document.querySelector('.close-btn');
-    const postForm = document.getElementById('postForm');
     const postFeed = document.getElementById('postFeed');
 
     // Show modal
     createPostBtn.addEventListener('click', () => {
-        modal.style.display = 'block';
-    });
-
-    // Hide modal
-    closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    });
-
-    // Handle form submission
-    postForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const formData = new FormData(postForm);
-        
-        try {
-            const response = await fetch('/api/community/posts', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                modal.style.display = 'none';
-                postForm.reset();
-                fetchPosts();
-            } else {
-                alert('Failed to create post. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error creating post:', error);
-            alert('An error occurred. Please try again.');
-        }
+        window.openPostModal(fetchPosts);
     });
 
     // Fetch and display posts
