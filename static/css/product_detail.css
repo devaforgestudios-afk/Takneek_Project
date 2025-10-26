@@ -541,7 +541,8 @@ body::after {
         height: 80px;
     }
 }
-    .product-actions {
+
+.product-actions {
 
     flex-direction: column;
 
@@ -800,4 +801,3 @@ body::after {
     font-size: 14px;
     border: 1px solid rgba(139, 101, 71, 0.1);
 }
-

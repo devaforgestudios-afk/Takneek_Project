@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Language Translation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="google" content="notranslate">
+    
+    <script type="text/javascript">
+        function autoTranslate(lang) {
+            // Update button text
+            const button = document.getElementById('language-dropdown-button');
+            const selectedLang = document.querySelector(`[data-lang="${lang}"]`);
+            if (button && selectedLang) {
+                button.innerHTML = `
+                    <span>${selectedLang.textContent}</span>
+                    <svg class="w-4 h-4 ml-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                `;
+            }
+
+            // Close dropdown
+            document.getElementById('language-dropdown-menu').classList.add('hidden');
+
+            // Trigger Google Translate
+            const interval = setInterval(() => {
+                const select = document.querySelector("select.goog-te-combo");
+                if (select) {
+                    select.value = lang;
+                    select.dispatchEvent(new Event('change'));
+                    clearInterval(interval);
+                }
+            }, 300);
+        }
+
+        // Toggle dropdown
+        function toggleLanguageDropdown() {
+            const menu = document.getElementById('language-dropdown-menu');
+            const button = document.getElementById('language-dropdown-button');
+            const svg = button.querySelector('svg');
+            
+            menu.classList.toggle('hidden');
+            svg.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('language-dropdown');
+            if (dropdown && !dropdown.contains(event.target)) {
+                document.getElementById('language-dropdown-menu').classList.add('hidden');
+                const svg = document.getElementById('language-dropdown-button').querySelector('svg');
+                if (svg) {
+                    svg.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
+    </script>
+        
+    <script>
+        // Tailwind config
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'saffron': '#FF9933',
+                        'bharat-saffron': '#FF6600',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #0a0f1a, #090c18, #101622);
+            color: #E0E7FF;
+            min-height: 100vh;
+        }
+
+        /* Hide Google Translate elements */
+        #google_translate_element {
+            display: none;
+        }
+
+        iframe,
+        .goog-logo-link,
+        .goog-te-gadget {
+            display: none !important;
+        }
+
+        body > .skiptranslate {
+            display: none !important;
+        }
+
+        /* Language Dropdown Styling */
+        .language-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .language-dropdown-button {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 200px;
+            background: linear-gradient(135deg, rgba(24, 24, 48, 0.85), rgba(30, 30, 60, 0.75));
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 153, 51, 0.3);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .language-dropdown-button:hover {
+            background: linear-gradient(135deg, rgba(255, 153, 51, 0.2), rgba(255, 102, 0, 0.2));
+            border-color: rgba(255, 153, 51, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 153, 51, 0.3);
+        }
+
+        .language-dropdown-menu {
+            position: absolute;
+            top: 110%;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, rgba(24, 24, 48, 0.95), rgba(30, 30, 60, 0.9));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 153, 51, 0.3);
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .language-dropdown-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .language-dropdown-menu::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .language-dropdown-menu::-webkit-scrollbar-thumb {
+            background: rgba(255, 153, 51, 0.5);
+            border-radius: 10px;
+        }
+
+        .language-dropdown-menu::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 153, 51, 0.8);
+        }
+
+        .language-option {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            color: #E0E7FF;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .language-option:last-child {
+            border-bottom: none;
+        }
+
+        .language-option:hover {
+            background: linear-gradient(90deg, rgba(255, 153, 51, 0.15), rgba(255, 102, 0, 0.15));
+            color: #FF9933;
+            padding-left: 1.5rem;
+        }
+
+        .language-option.selected {
+            background: linear-gradient(90deg, rgba(255, 153, 51, 0.2), rgba(255, 102, 0, 0.2));
+            color: #FF9933;
+            font-weight: 600;
+        }
+
+        /* Demo content styling */
+        .demo-content {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(24, 24, 48, 0.5);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(58, 74, 106, 0.4);
+        }
+
+        .demo-content h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #FF9933, #00B383);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-content p {
+            line-height: 1.8;
+            margin-bottom: 1rem;
+            color: #E0E7FF;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8">
+        <!-- Language Dropdown -->
+        <div id="language-dropdown" class="language-dropdown notranslate">
+            <button id="language-dropdown-button" class="language-dropdown-button" onclick="toggleLanguageDropdown()">
+                <span>English</span>
+                <svg class="w-4 h-4 ml-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            
+            <div id="language-dropdown-menu" class="language-dropdown-menu hidden">
+                <!-- English -->
+                <div class="language-option selected" data-lang="en" onclick="autoTranslate('en')">
+                    <span>English</span>
+                </div>
+                
+                <!-- Indian Languages -->
+                <div class="language-option" data-lang="hi" onclick="autoTranslate('hi')">
+                    <span>हिंदी (Hindi)</span>
+                </div>
+                <div class="language-option" data-lang="bn" onclick="autoTranslate('bn')">
+                    <span>বাংলা (Bengali)</span>
+                </div>
+                <div class="language-option" data-lang="ta" onclick="autoTranslate('ta')">
+                    <span>தமிழ் (Tamil)</span>
+                </div>
+                <div class="language-option" data-lang="te" onclick="autoTranslate('te')">
+                    <span>తెలుగు (Telugu)</span>
+                </div>
+                <div class="language-option" data-lang="mr" onclick="autoTranslate('mr')">
+                    <span>मराठी (Marathi)</span>
+                </div>
+                <div class="language-option" data-lang="gu" onclick="autoTranslate('gu')">
+                    <span>ગુજરાતી (Gujarati)</span>
+                </div>
+                <div class="language-option" data-lang="kn" onclick="autoTranslate('kn')">
+                    <span>ಕನ್ನಡ (Kannada)</span>
+                </div>
+                <div class="language-option" data-lang="ml" onclick="autoTranslate('ml')">
+                    <span>മലയാളം (Malayalam)</span>
+                </div>
+                <div class="language-option" data-lang="pa" onclick="autoTranslate('pa')">
+                    <span>ਪੰਜਾਬੀ (Punjabi)</span>
+                </div>
+                <div class="language-option" data-lang="ur" onclick="autoTranslate('ur')">
+                    <span>اردو (Urdu)</span>
+                </div>
+                <div class="language-option" data-lang="or" onclick="autoTranslate('or')">
+                    <span>ଓଡ଼ିଆ (Odia)</span>
+                </div>
+                <div class="language-option" data-lang="as" onclick="autoTranslate('as')">
+                    <span>অসমীয়া (Assamese)</span>
+                </div>
+                <div class="language-option" data-lang="mai" onclick="autoTranslate('mai')">
+                    <span>मैथिली (Maithili)</span>
+                </div>
+                <div class="language-option" data-lang="sa" onclick="autoTranslate('sa')">
+                    <span>संस्कृत (Sanskrit)</span>
+                </div>
+                <div class="language-option" data-lang="sd" onclick="autoTranslate('sd')">
+                    <span>سنڌي (Sindhi)</span>
+                </div>
+                <div class="language-option" data-lang="kok" onclick="autoTranslate('kok')">
+                    <span>कोंकणी (Konkani)</span>
+                </div>
+                <div class="language-option" data-lang="ne" onclick="autoTranslate('ne')">
+                    <span>नेपाली (Nepali)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Content (This will be translated) -->
+        <div class="demo-content">
+            <h1>Welcome to Digital Bharat</h1>
+            <p>
+                Digital Bharat Foundation is committed to transforming rural India through innovative 
+                digital solutions. Our mission is to bridge the technological gap, empower communities, 
+                and foster sustainable development in every village.
+            </p>
+            <p>
+                We believe that access to digital resources is a fundamental right that can unlock 
+                immense potential. We focus on key areas like digital literacy, accessible healthcare, 
+                renewable energy, and smart agriculture.
+            </p>
+            <p>
+                Join us in building a digitally empowered India. Your support makes a difference!
+            </p>
+        </div>
+
+        <!-- Instructions -->
+        <div class="demo-content" style="margin-top: 3rem;">
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; color: #FF9933;">
+                How to Use:
+            </h2>
+            <ul style="list-style-type: disc; margin-left: 1.5rem; line-height: 2;">
+                <li>Click the dropdown button above to see all available Indian languages</li>
+                <li>Select any language to translate the entire page</li>
+                <li><strong>Click "English" to revert back to the original content</strong></li>
+                <li>The dropdown includes 17 major Indian languages</li>
+                <li>Add <code class="notranslate" style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.5rem; border-radius: 0.25rem;">notranslate</code> class to elements you don't want translated</li>
+                <li>Works seamlessly with Google Translate API</li>
+                <li>Smooth animations and hover effects included</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Google Translate Element (Hidden) -->
+    <div id="google_translate_element"></div>
+
+    <!-- Google Translate API Script -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'en,hi,bn,ta,te,mr,gu,kn,ml,pa,ur,or,as,mai,sa,sd,kok,ne',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+    </script>
+    <script defer type="text/javascript" 
+            src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
+    </script>
+</body>
+</html>

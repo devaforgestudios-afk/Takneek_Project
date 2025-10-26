@@ -1,9 +1,11 @@
 {% extends "layout.html" %}
 {% block title %}Home | Kalakar Sahayak{% endblock %}
 
-{% block content %}
-
+{% block styles %}
 <link rel="stylesheet" href="static/css/style.css">
+{% endblock %}
+
+{% block content %}
 
 <section class="hero">
     <div class="hero-bg"></div>
@@ -23,7 +25,7 @@
             handcrafted masterpieces while preserving our rich cultural heritage.
         </p>
         <div class="cta-buttons">
-            <a href="#marketplace" class="btn btn-primary">
+            <a href="/marketplace" class="btn btn-primary">
                 <span class="material-icons notranslate">shopping_bag</span>
                 <span>Explore Marketplace</span>
                 <span class="material-icons notranslate">arrow_forward</span>
@@ -62,10 +64,9 @@
         </div>
         <div class="stat-card">
             <span class="stat-number notranslate" data-target="100">0</span>
-            <p class="stat-label">Art Forms</p>
-        </div>
     </div>
 </section>
+
 
   <section class="ai-innovation-section">
         <div class="section-content">

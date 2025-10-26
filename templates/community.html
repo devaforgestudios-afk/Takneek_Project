@@ -1,9 +1,12 @@
 {% extends "layout.html" %}
 {% block title %}Community | Kalakar Sahayak{% endblock %}
-{% block content %}
 
+{% block styles %}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/community.css') }}">
+{% endblock %}
+
+{% block content %}
 
 <div class="community-header">
     <h1 class="community-title">Community Hub</h1>

@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+{% block title %}{{ artist_name }}'s Arts | Kalakar Sahayak{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
+{% endblock %}
+
+{% block content %}
+    <main class="about-main">
+        <!-- Hero Section -->
+        <section class="about-hero">
+            <div class="about-hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">About <span class="highlight" style="color: yellow;">Kalakar Sahayak</span></h1>
+                    <p class="hero-subtitle">We are a passionate team dedicated to bridging the gap between traditional artistry and the digital world. Our mission is to empower artisans, preserve cultural heritage, and bring timeless crafts to a global audience.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Our Mission Section -->
+        <section class="about-section">
+            <div class="container">
+                <div class="section-header reveal">
+                    <h2 class="section-title">Our <span class="highlight">Mission</span></h2>
+                    <p class="section-subtitle">To empower artisans and preserve cultural heritage for future generations.</p>
+                </div>
+                <div class="mission-content">
+                    <div class="mission-image reveal">
+                        <img src="static\assets\about-us-image.jpeg" alt="Artisans working with crafts">
+                    </div>
+                    <div class="mission-text reveal">
+                        <p>Kalakar Sahayak was born from a deep-seated passion for India's rich artistic heritage and a desire to empower the talented artisans who are its custodians. We saw a world where traditional art forms were at risk of fading into obscurity, and skilled artisans were struggling to connect with a market that would appreciate and fairly compensate their craft.</p>
+                        <p>Our mission is to bridge this gap. We are leveraging the power of technology not to replace but to amplify the reach and potential of traditional craftsmanship. We provide a platform where artisans can find design inspiration, price their work effectively, and connect with a global audience of art lovers.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Our Values Section -->
+        <section class="about-section bg-light">
+            <div class="container">
+                <div class="section-header reveal">
+                    <h2 class="section-title">Our <span class="highlight">Values</span></h2>
+                </div>
+                <div class="values-grid">
+                    <div class="value-card reveal">
+                        <div class="value-icon"><span class="material-icons">palette</span></div>
+                        <h3 class="value-title">Artisan First</h3>
+                        <p class="value-description">We prioritize the needs and well-being of our artisans, ensuring fair trade and sustainable practices.</p>
+                    </div>
+                    <div class="value-card reveal">
+                        <div class="value-icon"><span class="material-icons">public</span></div>
+                        <h3 class="value-title">Cultural Preservation</h3>
+                        <p class="value-description">We are committed to protecting and promoting the rich tapestry of traditional Indian art forms.</p>
+                    </div>
+                    <div class="value-card reveal">
+                        <div class="value-icon"><span class="material-icons">lightbulb</span></div>
+                        <h3 class="value-title">Innovation</h3>
+                        <p class="value-description">We embrace technology to create new opportunities and solve challenges for the artisan community.</p>
+                    </div>
+                    <div class="value-card reveal">
+                        <div class="value-icon"><span class="material-icons">group</span></div>
+                        <h3 class="value-title">Community</h3>
+                        <p class="value-description">We foster a supportive and collaborative network of artisans, buyers, and art enthusiasts.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Our Story / Timeline Section -->
+        <section class="about-section">
+            <div class="container">
+                <div class="section-header reveal">
+                    <h2 class="section-title">Our <span class="highlight">Journey</span></h2>
+                </div>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">The Spark (2022)</h3>
+                            <p class="timeline-text">The idea for Kalakar Sahayak was born out of a trip to a rural artisan village, witnessing the incredible talent and the challenges faced by the community.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">Platform Launch (2023)</h3>
+                            <p class="timeline-text">After months of research and development, we launched our platform with a small group of artisans, focusing on providing essential digital tools.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">Community Growth (2024)</h3>
+                            <p class="timeline-text">Our community grew to over 1,000 artisans, with our marketplace gaining traction and our AI tools becoming more sophisticated.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <h3 class="timeline-title">Future Vision (2025 & Beyond)</h3>
+                            <p class="timeline-text">We aim to expand our reach to every corner of India, introducing new technologies like VR galleries and expanding our global footprint.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Meet the Team Section -->
+        <section class="about-section bg-light">
+            <div class="container">
+                <div class="section-header reveal">
+                    <h2 class="section-title">Meet the <span class="highlight">Team</span></h2>
+                </div>
+                <div class="team-grid">
+                    <div class="team-member-card reveal">
+                        <div class="team-member-img">
+                            <img src="https://placehold.co/600x400/png?text=Captain" alt="Adhdhyan Jain">
+                        </div>
+                        <div class="team-member-info">
+                            <h3 class="team-member-name">Adhdhyan Jain</h3>
+                            <p class="team-member-role">Captain</p>
+                        </div>
+                    </div>
+                    <div class="team-member-card reveal">
+                        <div class="team-member-img">
+                            <img src="https://placehold.co/600x400/png?text=Vice+Captain" alt="Toshan Jain">
+                        </div>
+                        <div class="team-member-info">
+                            <h3 class="team-member-name">Toshan Jain</h3>
+                            <p class="team-member-role">Vice Captain</p>
+                        </div>
+                    </div>
+                    <div class="team-member-card reveal">
+                        <div class="team-member-img">
+                            <img src="https://placehold.co/600x400/png?text=Bade+Log" alt="Madhur Goyal">
+                        </div>
+                        <div class="team-member-info">
+                            <h3 class="team-member-name">Madhur Goyal</h3>
+                            <p class="team-member-role">Bade Log</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Scroll reveal animation
+        const reveals = document.querySelectorAll('.reveal');
+        
+        function checkReveal() {
+            const windowHeight = window.innerHeight;
+            const revealPoint = 100;
+            
+            reveals.forEach(reveal => {
+                const revealTop = reveal.getBoundingClientRect().top;
+                
+                if (revealTop < windowHeight - revealPoint) {
+                    reveal.classList.add('active');
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', checkReveal);
+        checkReveal(); // Check on load
+    </script>
+
+
+{% endblock %}

@@ -1,9 +1,13 @@
 {% extends "layout.html" %}
 {% block title %}Marketplace | Kalakar Sahayak{% endblock %}
-{% block content %}
 
+{% block styles %}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-<link rel="stylesheet" href="static/css/marketplace.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/loader.css') }}">
+{% endblock %}
+
+{% block content %}
 
 <div class="hero-section">
     <h1 class="hero-title">Artisan <span class="marketplace">Marketplace</span></h1>
@@ -51,9 +55,17 @@
 
     <!-- Products Grid -->
     <div id="productsContainer" class="products-grid">
-        <div class="loading">
-            <div class="spinner"></div>
-            Loading products...
+        <div class="loader-wrapper">
+            <div class="loader-container">
+                <div class="loader-ring"></div>
+                <div class="loader-mandala"></div>
+                <div class="loader-center"></div>
+                <div class="orbit-dot"></div>
+                <div class="orbit-dot"></div>
+                <div class="orbit-dot"></div>
+                <div class="orbit-dot"></div>
+                <div class="loader-text">Loading Artworks</div>
+            </div>
         </div>
     </div>
 </div>

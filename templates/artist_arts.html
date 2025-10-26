@@ -1,9 +1,12 @@
 {% extends "layout.html" %}
 {% block title %}{{ artist_name }}'s Arts | Kalakar Sahayak{% endblock %}
-{% block content %}
 
+{% block styles %}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css') }}">
+{% endblock %}
+
+{% block content %}
 
 <div class="hero-section">
     <h1 class="hero-title">Artworks by <span class="marketplace">{{ artist_name }}</span></h1>

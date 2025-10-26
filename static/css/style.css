@@ -307,9 +307,6 @@
     pointer-events: none;
 }
 
-
-
-
 /* Decorative pattern overlay */
 .ai-innovation-section::after {
     content: '✦';
@@ -586,5 +583,7 @@
 }
 
 .post-image {
+
     cursor: pointer;
+
 }

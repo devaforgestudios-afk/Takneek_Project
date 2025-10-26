@@ -53,7 +53,7 @@ body {
         /* softer diagonal texture lines */
         repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(139, 101, 71, 0.015) 35px, rgba(139, 101, 71, 0.015) 70px),
         repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(210, 105, 30, 0.015) 35px, rgba(210, 105, 30, 0.015) 70px);
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 /* Mandala-inspired subtle overlay */
@@ -125,8 +125,8 @@ body {
 
 /* Studio Content */
 .studio-content {
-    max-width: 1280px;
-    margin: -20px auto 40px;
+    max-width: 1580px;
+    margin: -10px auto 40px;
     padding: 0 20px 40px;
 }
 
@@ -898,6 +898,7 @@ body {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 24px;
+        ;
     }
 }
 

@@ -538,19 +538,43 @@ body::after {
     }
 
     .filter-bar {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        overflow-x: auto;
         padding: 16px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: #ccc #f1f1f1;
+    }
+
+    .filter-bar::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .filter-bar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .filter-bar::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
+    }
+
+    .filter-bar::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
     }
 
     .sort-section {
-        margin-left: 0;
-        width: 100%;
-        margin-top: 10px;
+        margin-left: auto;
+        width: auto;
+        margin-top: 0;
+        flex-shrink: 0;
     }
 
     .filter-btn {
         font-size: 13px;
         padding: 8px 18px;
+        flex-shrink: 0; /* Prevent buttons from shrinking */
     }
 
     .search-box {
