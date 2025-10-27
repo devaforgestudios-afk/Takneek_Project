@@ -4,94 +4,28 @@ import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import google.generativeai as genai
-from PIL import Image
 import hashlib
 from functools import wraps
 import qrcode
 import io
-import mysql.connector
+
 from mysql.connector import Error, pooling
 from contextlib import contextmanager
-import threading
 from concurrent.futures import ThreadPoolExecutor
-import time
-import configparser
-import sys
 import colorama
+
+
+from brain.review_validator import validate_review
+from brain.db_setup import create_users_table, create_artworks_table, create_community_posts_table, create_contact_table
+from brain.config import load_config
+from brain.price_generator import generate as generate_price
+from brain.description_generator import generate_description as generate_desc
+
+
+config = load_config()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
-
-# Configuration file path
-CONFIG_FILE = 'config.ini'
-
-def create_default_config():
-    """Create a default config.ini file if it doesn't exist"""
-    config = configparser.ConfigParser()
-    config['DATABASE'] = {
-        'host': 'localhost',
-        'user': '',
-        'password': '',
-        'database': 'takneev5'
-    }
-    config['API'] = {
-        'gemini_api_key': ''
-    }
-    
-    with open(CONFIG_FILE, 'w') as configfile:
-        config.write(configfile)
-    
-    print(f"\n{'='*60}")
-    print(f"CONFIGURATION FILE CREATED: {CONFIG_FILE}")
-    print(f"{'='*60}")
-    print("\nPlease edit the config.ini file and add the following:")
-    print("\n[DATABASE]")
-    print("  - user: Your MySQL username (e.g., root)")
-    print("  - password: Your MySQL password")
-    print("  - host: MySQL server host (default: localhost)")
-    print("  - database: Database name (default: takneev5)")
-    print("\n[API]")
-    print("  - gemini_api_key: Your Google Gemini API key")
-    print(f"\n{'='*60}")
-    print("After editing config.ini, restart the application.")
-    print(f"{'='*60}\n")
-    sys.exit(1)
-
-def load_config():
-    """Load configuration from config.ini file"""
-    if not os.path.exists(CONFIG_FILE):
-        print(f"Configuration file '{CONFIG_FILE}' not found.")
-        create_default_config()
-    
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-    
-    # Validate database configuration
-    if not config.has_section('DATABASE'):
-        print("ERROR: [DATABASE] section missing in config.ini")
-        sys.exit(1)
-    
-    db_user = config.get('DATABASE', 'user', fallback='').strip()
-    db_password = config.get('DATABASE', 'password', fallback='').strip()
-    
-    if not db_user:
-        print("\nERROR: Database user is not configured in config.ini")
-        print("Please edit config.ini and set the 'user' value under [DATABASE]")
-        sys.exit(1)
-    
-    # Validate API configuration
-    if not config.has_section('API'):
-        print("ERROR: [API] section missing in config.ini")
-        sys.exit(1)
-    
-    api_key = config.get('API', 'gemini_api_key', fallback='').strip()
-    if not api_key:
-        print("\nWARNING: Gemini API key is not configured in config.ini")
-    
-    return config
-
-# Load configuration
-config = load_config()
 
 # Database configuration from config.ini
 DB_CONFIG = {
@@ -177,66 +111,14 @@ def increment_view_count_async(artwork_id):
     
     executor.submit(_increment)
 
+
 def generate(image_path, details_text):
-    """Analyzes an image and suggests a fair price"""
-    try:
-        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-        
-        with Image.open(image_path) as img:
-            prompt_parts = [
-                details_text,
-                img,
-                "\n\nSee the image and details, and suggest a fair price for the ornament based on recent Indian market trends, satisfying both the maker and supplier. dont ask any follow up questions. and just the price nothing else or any other text. The price should be in INR and rather than a range it should be a single value.The price should match the city trends and no price should be less than 1000 INR and go upto tens of thousands."
-            ]
-            
-            response = model.generate_content(prompt_parts, stream=True)
-            generated_price = ""
-            for chunk in response:
-                generated_price += chunk.text
-            
-            return generated_price.strip()
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return "0"
+    future = executor.submit(generate_price, image_path, details_text)
+    return future.result()
 
 def generate_description(image_path, title, category, material, existing_description=""):
-    """Generates a description for an artwork using AI"""
-    try:
-        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-        
-        with Image.open(image_path) as img:
-            if existing_description:
-                prompt = f"""
-                Enhance the following description for an artwork with the given details.
-                Make it more evocative and appealing to potential buyers.
-                Keep it concise and under 100 words.
-
-                Title: {title}
-                Category: {category}
-                Material: {material}
-                Existing Description: {existing_description}
-
-                Enhanced Description:
-                """
-            else:
-                prompt = f"""
-                Write a compelling and brief description (under 80 words) for the following artwork.
-                Focus on the visual elements, the craftsmanship, and the potential story behind the piece.
-                The description should entice potential buyers and art enthusiasts. 
-                The discription is for an ecommerce website made for tradition handicraft artisans and buyers so make the discription according to it only.
-
-                Title: {title}
-                Category: {category}
-                Material: {material}
-
-                Description:
-                """
-            
-            response = model.generate_content([prompt, img])
-            return response.text.strip()
-    except Exception as e:
-        print(f"An error occurred during description generation: {e}")
-        return "Failed to generate description."
+    future = executor.submit(generate_desc, image_path, title, category, material, existing_description)
+    return future.result()
 
 def correct_and_translate_text(text_to_correct):
     """Corrects spelling and translates text to English using Gemini AI"""
@@ -738,13 +620,21 @@ def product_detail(product_id):
     """Render product detail page"""
     return render_template('product_detail.html', product_id=product_id)
 
+
 @app.route('/submit_feedback/<product_id>', methods=['POST'])
 def submit_feedback(product_id):
     feedback_text = request.form.get('feedback_text')
     
     if not feedback_text:
         return jsonify({'success': False, 'message': 'Feedback cannot be empty.'}), 400
-    
+
+    # Run validation in a separate thread
+    validation_future = executor.submit(validate_review, feedback_text)
+    validation_result = validation_future.result()
+
+    if validation_result == 'bad':
+        return render_template('feedback_popup.html', message='Your review contains inappropriate content and will not be saved.')
+  
     try:
         with get_db_cursor(commit=True) as cursor:
             cursor.execute("SELECT feedback FROM artworks WHERE id = %s", (product_id,))
@@ -1004,6 +894,46 @@ def generate_description_route():
                 os.remove(filepath)
             except Exception as clean_e:
                 print(f"Error cleaning up file: {clean_e}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+
+# Create tables if they don't exist
+create_users_table(connection_pool)
+create_artworks_table(connection_pool)
+create_community_posts_table(connection_pool)
+create_contact_table(connection_pool)
+
+from brain.message_validator import validate_message
+
+@app.route('/submit-contact-form', methods=['POST'])
+def submit_contact_form():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    subject = request.form.get('subject')
+    message = request.form.get('message')
+
+    analyse = {
+        'name': name,
+        'subject': subject,
+        'message': message 
+    }
+
+    # Run validation in a separate thread
+    validation_future = executor.submit(validate_message, analyse)
+    validation_result = validation_future.result()
+
+    if validation_result == 'bad':
+        return render_template('feedback_popup.html', message='Your message contains inappropriate content and will not be sent.')
+
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute("""
+                INSERT INTO contact (name, email, subject, message) VALUES (%s, %s, %s, %s)
+            """, (name, email, subject, message))
+        return redirect(url_for('contact'))
+    except Exception as e:
+        print(f"Error submitting contact form: {str(e)}")
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 if __name__ == "__main__":

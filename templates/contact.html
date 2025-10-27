@@ -1,9 +1,64 @@
 {% extends "layout.html" %}
 {% block title %}Contact Us | Kalakar Sahayak{% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/contact.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>Contact Us</h1>
-    <p>This page is under construction. Please check back later for ways to contact us.</p>
-</div>
+<main class="contact-main">
+    <div class="contact-header">
+        <h1 class="contact-title" style="margin-top: 50px;">Get In <span class="highlight">Touch</span></h1>
+        <p class="contact-subtitle">We'd love to hear from you. Whether you have a question about our platform, our artisans, or anything else, our team is ready to answer all your questions.</p>
+    </div>
+
+    <div class="contact-content">
+        <div class="contact-form-container">
+            <form action="/submit-contact-form" method="post">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="subject">Subject</label>
+                    <input type="text" id="subject" name="subject" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" class="form-control" required></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Send Message</button>
+            </form>
+        </div>
+
+        <div class="contact-info-container">
+            <h3>Contact Information</h3>
+            <div class="contact-info-item">
+                <span class="material-icons notranslate">email</span>
+                <div>
+                    <p><strong>Email Us</strong></p>
+                    <p>support@kalakarsahayak.com</p>
+                </div>
+            </div>
+            <div class="contact-info-item">
+                <span class="material-icons notranslate">phone</span>
+                <div>
+                    <p><strong>Call Us</strong></p>
+                    <p>+91 123 456 7890</p>
+                </div>
+            </div>
+            <div class="contact-info-item">
+                <span class="material-icons notranslate">location_on</span>
+                <div>
+                    <p><strong>Visit Us</strong></p>
+                    <p>123 Art Street, Jaipur, Rajasthan, India</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
 {% endblock %}

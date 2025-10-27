@@ -37,6 +37,7 @@
     .container {
         max-width: 1200px;
         margin: 0 auto;
+        margin-top: 100px;
         padding: 1.5rem;
         position: relative;
         z-index: 1;
@@ -53,7 +54,7 @@
         padding: 8px 16px;
         background: rgba(255, 255, 255, 0.7);
         border-radius: 8px;
-        border: 2px solid rgba(139, 101, 71, 0.15);
+        border: 2px solid #8b6547;
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
         font-size: 14px;
@@ -606,7 +607,7 @@
     }
 </style>
 
-<div class="container">
+<div class="container" >
     <a href="/marketplace" class="back-button">
         <span class="material-symbols-outlined notranslate">arrow_back</span>
         Back to Marketplace
@@ -695,7 +696,7 @@
                     </div>
 
                     ${product.price > 0 ? 
-                        `<div class="price-display">₹${product.price.toLocaleString()}</div>` :
+                        `<div class="price-display notranslate">₹${product.price.toLocaleString()}</div>` :
                         `<div class="price-display" style="font-size: 1.8rem;">Contact for pricing</div>`
                     }
 
