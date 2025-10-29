@@ -31,6 +31,7 @@ def create_artworks_table(pool):
                     title VARCHAR(255) NOT NULL,
                     category VARCHAR(255) NOT NULL,
                     material VARCHAR(255) NOT NULL,
+                    time_spent VARCHAR(255),
                     description TEXT NOT NULL,
                     price FLOAT,
                     files JSON,
@@ -45,6 +46,16 @@ def create_artworks_table(pool):
                 print("Artworks table created or already exists.")
     except Error as e:
         print(f"Error creating artworks table: {e}")
+
+def drop_artworks_table(pool):
+    """Drops the artworks table if it exists."""
+    try:
+        with pool.get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("DROP TABLE IF EXISTS artworks")
+                print("Artworks table dropped if it existed.")
+    except Error as e:
+        print(f"Error dropping artworks table: {e}")
 
 def create_community_posts_table(pool):
     """Creates the community_posts table if it doesn't exist."""

@@ -20,6 +20,7 @@ from brain.db_setup import create_users_table, create_artworks_table, create_com
 from brain.config import load_config
 from brain.price_generator import generate as generate_price
 from brain.description_generator import generate_description as generate_desc
+from brain.ai_image_enhancer import edit_image_with_traditional_background
 
 
 config = load_config()
@@ -84,10 +85,12 @@ def xhr_required(f):
 
 # Configuration
 UPLOAD_FOLDER = 'static/uploads/artworks'
+TEMP_UPLOAD_FOLDER = 'static/uploads/temp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi', 'pdf'}
 
 # Ensure directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(TEMP_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/uploads/community', exist_ok=True)
 
 # Gemini API Configuration
@@ -896,6 +899,56 @@ def generate_description_route():
                 print(f"Error cleaning up file: {clean_e}")
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
+
+@app.route('/api/enhance-image', methods=['POST'])
+@xhr_required
+def enhance_image_route():
+    if 'user_email' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file part'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'}), 400
+
+    if file and allowed_file(file.filename):
+        try:
+            # Save temp file
+            filename = secure_filename(file.filename)
+            temp_filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{filename}"
+            temp_path = os.path.join(TEMP_UPLOAD_FOLDER, temp_filename) # Use new temp folder
+            file.save(temp_path)
+
+            # Define output directory
+            output_dir = UPLOAD_FOLDER
+
+            # Enhance image
+            enhanced_image_path = edit_image_with_traditional_background(temp_path, output_dir)
+
+            if enhanced_image_path:
+                # Clean up temp file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                
+                # Return relative path for web access
+                web_path = os.path.relpath(enhanced_image_path, 'static').replace('\\', '/')
+                return jsonify({'success': True, 'path': f'/static/{web_path}'})
+            else:
+                # Clean up temp file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return jsonify({'success': False, 'message': 'Image enhancement failed'}), 500
+
+        except Exception as e:
+            print(f"Error enhancing image: {e}")
+            # Clean up temp file in case of error
+            if 'temp_path' in locals() and os.path.exists(temp_path):
+                os.remove(temp_path)
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    return jsonify({'success': False, 'message': 'File type not allowed'}), 400
 
 
 # Create tables if they don't exist

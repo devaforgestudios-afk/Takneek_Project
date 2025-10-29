@@ -544,6 +544,34 @@ body {
     transform: translateX(4px);
 }
 
+.enhancement-preview-container {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid rgba(212, 115, 90, 0.15);
+    border-radius: 12px;
+    background: white;
+}
+
+.enhancement-preview-container h4 {
+    font-family: "Playfair Display", serif;
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 10px;
+    color: #3b3b3b;
+}
+
+.enhancement-preview-container img {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+#use-enhanced-image-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 0.9rem;
+}
+
 /* Preview Card */
 .preview-card {
     margin-top: 10px;
@@ -742,7 +770,6 @@ body {
 }
 
 .input-wrapper input {
-    padding-left: 44px;
     width: 100%;
     padding: 14px 16px 14px 44px;
     border-radius: 10px;

@@ -335,11 +335,9 @@ document.getElementById('generateDescBtnAi')?.addEventListener('click', async ()
     }
 });
 
-function handleFiles(files) {
-    selectedFiles = Array.from(files);
+function updateFilePreview(files) {
     filePreview.innerHTML = '';
-    
-    selectedFiles.forEach((file, index) => {
+    files.forEach((file, index) => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
         
@@ -363,6 +361,82 @@ function handleFiles(files) {
         
         filePreview.appendChild(fileItem);
     });
+}
+
+
+function handleFiles(files) {
+    selectedFiles = Array.from(files);
+    updateFilePreview(selectedFiles);
+
+    const imageFile = selectedFiles.find(f => f.type.startsWith('image/'));
+    if (imageFile) {
+        startImageEnhancement(imageFile);
+    } else {
+        // Hide enhancement preview if no image is selected
+        const previewContainer = document.getElementById('enhancement-preview-container');
+        previewContainer.style.display = 'none';
+        previewContainer.innerHTML = '';
+    }
+}
+
+async function startImageEnhancement(file) {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const previewContainer = document.getElementById('enhancement-preview-container');
+    
+    previewContainer.style.display = 'block';
+    previewContainer.innerHTML = '<p>Enhancing image...</p>'; // Loading state
+
+    try {
+        const response = await fetchWithXHR('/api/enhance-image', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            previewContainer.innerHTML = `
+                <h4>Enhanced Preview</h4>
+                <img id="enhanced-preview-image" src="${data.path}" alt="Enhanced Preview">
+                <button id="use-enhanced-image-btn" class="btn-primary">Use Preview Image</button>
+            `;
+            document.getElementById('use-enhanced-image-btn')?.addEventListener('click', useEnhancedImage);
+        } else {
+            previewContainer.innerHTML = `<p>Failed to enhance image: ${data.message}</p>`;
+        }
+    } catch (error) {
+        console.error('Error enhancing image:', error);
+        previewContainer.innerHTML = `<p>An error occurred while enhancing the image.</p>`;
+    }
+}
+
+async function useEnhancedImage() {
+    const enhancedImage = document.getElementById('enhanced-preview-image');
+    if (!enhancedImage || !enhancedImage.src) {
+        alert('No enhanced image to use.');
+        return;
+    }
+    const enhancedImageUrl = enhancedImage.src;
+
+    const response = await fetch(enhancedImageUrl);
+    const blob = await response.blob();
+    const filename = enhancedImageUrl.split('/').pop();
+    const newFile = new File([blob], filename, { type: blob.type });
+
+    selectedFiles = [newFile];
+
+    const dt = new DataTransfer();
+    dt.items.add(newFile);
+    fileInput.files = dt.files;
+    
+    updateFilePreview(selectedFiles);
+
+    document.getElementById('enhancement-preview-container').style.display = 'none';
+    alert('Enhanced image is now set as the main image.');
 }
 
 function removeFile(index) {
