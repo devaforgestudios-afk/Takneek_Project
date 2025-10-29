@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce_app/common_widget/AppBarWidget.dart';
 import 'package:flutter_ecommerce_app/common_widget/BottomNavBarWidget.dart';
 import 'package:flutter_ecommerce_app/common_widget/DrawerWidget.dart';
+import 'package:flutter_ecommerce_app/common_widget/camera/CameraCaptureSheet.dart';
 import 'package:flutter_ecommerce_app/screens/HomeScreen.dart';
 import 'package:flutter_ecommerce_app/screens/ShoppingCartScreen.dart';
 import 'package:flutter_ecommerce_app/screens/WishListScreen.dart';
-import 'package:image_picker/image_picker.dart';
 
 const Color kAppSurfaceColor = Color(0xFFDADAC9);
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -45,7 +48,6 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageNewState extends State<MyHomePage> {
   int _currentIndex = 0;
-  final ImagePicker _picker = ImagePicker();
   final List<Widget> viewContainer = [
     HomeScreen(),
     WishListScreen(),
@@ -59,27 +61,22 @@ class _MyHomePageNewState extends State<MyHomePage> {
     });
   }
 
-  Future<void> _openCamera() async {
-    try {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (!mounted) return;
-      if (photo != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Captured image saved to ${photo.name}'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unable to open camera: $error'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+  Future<void> _showCameraSheet() async {
+    final capture = await showModalBottomSheet<CameraCaptureResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const CameraCaptureSheet(),
+    );
+
+    if (!mounted || capture == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Captured image saved to ${capture.fileName}'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -96,8 +93,15 @@ class _MyHomePageNewState extends State<MyHomePage> {
         bottomNavigationBar: BottomNavBarWidget(
           currentIndex: _currentIndex,
           onItemSelected: _onItemSelected,
-          onCameraTap: _openCamera,
         ),
+        floatingActionButton: FloatingActionButton.large(
+          onPressed: _showCameraSheet,
+          backgroundColor: const Color(0xFFAA292E),
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.camera_alt, size: 32),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       ),
     );
   }

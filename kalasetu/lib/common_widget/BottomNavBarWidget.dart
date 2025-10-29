@@ -6,19 +6,16 @@ class BottomNavBarWidget extends StatelessWidget {
     super.key,
     this.currentIndex = 0,
     this.onItemSelected,
-    this.onCameraTap,
   });
 
   final int currentIndex;
   final ValueChanged<int>? onItemSelected;
-  final VoidCallback? onCameraTap;
 
   @override
   Widget build(BuildContext context) {
-    final int selectedIndex = currentIndex >= 2 ? currentIndex + 1 : currentIndex;
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      currentIndex: selectedIndex,
+      currentIndex: currentIndex,
       items: const <BottomNavigationBarItem>[
         BottomNavigationBarItem(
           icon: Icon(Icons.home),
@@ -29,11 +26,7 @@ class BottomNavBarWidget extends StatelessWidget {
           label: 'Wish List',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.camera_alt),
-          label: 'Camera',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(FontAwesomeIcons.shoppingBag),
+          icon: Icon(FontAwesomeIcons.bagShopping),
           label: 'Cart',
         ),
         BottomNavigationBarItem(
@@ -42,14 +35,7 @@ class BottomNavBarWidget extends StatelessWidget {
         ),
       ],
       selectedItemColor: const Color(0xFFAA292E),
-      onTap: (index) {
-        if (index == 2) {
-          onCameraTap?.call();
-          return;
-        }
-        final int adjustedIndex = index > 2 ? index - 1 : index;
-        (onItemSelected ?? (_) {})(adjustedIndex);
-      },
+      onTap: onItemSelected ?? (_) {},
     );
   }
 }
